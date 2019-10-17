@@ -1,0 +1,16 @@
+app_name: SynthPDF
+
+
+numPDFs: "10::20::30"
+
+output:
+  filename: test.pdf
+
+chars:
+  cn_char_file: 'char_data/JianTi3500.txt'
+  symbol_char_file: 'char_data/FuHao110.txt'
+  number_char_file: 'char_data/ShuZiZiMu62.txt'
+
+
+
+

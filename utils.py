@@ -43,5 +43,5 @@ def b64pdf2img(b64_str, image_path, pdf_temp_path = 'pdf_files', dpi = 150):
     return img_save_path
 
 
-#test_file = 'config.yaml'
-#print(load_yaml(test_file)) 
+test_file = 'config.yaml'
+print(load_yaml(test_file)) 

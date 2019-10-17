@@ -12,5 +12,25 @@ chars:
   number_char_file: 'char_data/ShuZiZiMu62.txt'
 
 
+table:
 
+  layout:
+    nrows: [2, 8]
+    ncols: [2, 5]
+    
+  cell:
+    font_size: [8, 15]
+    text_color: ['black']  # font name or RGB 
+    vertical_align: [] # Opt: ['TOP', 'MIDDLE', 'BOTTOM'] if empty, apply randomly
+    horizontal_align: ['CENTER'] # Opt: ['LEFT', 'RIGHT', 'CENTER', 'DECIMAL'] if empty, apply randomly
+    
+  line:
+    grid_prob: 0.5 # The probability of having grid linesx
+    grid_color: ['red', 'green', 'grey', 'black', 'pink', 'lavender', 'orange', 'blue', 'yellow']
+    grid_line_width: [1]
 
+paragraph:
+  n_sentences: [30] 
+  font_size: [8, 15]
+  leading: [0.8, 3.0]
+  text_color: ['black']  # font name or RGB

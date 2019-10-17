@@ -15,11 +15,12 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 import os
 import cv2 
 import numpy as np
-from utils import pdf2img
+from utils import pdf2img, load_yaml
 import matplotlib.pyplot as plt 
 
+from style_generator import TableStyleGenerator, ParagraphStyleGenerator
 
-pdfmetrics.registerFont(TTFont('SimSun', 'SimSun.ttf'))
+pdfmetrics.registerFont(TTFont('SimSun', 'fonts/SimSun.ttf'))
 
 
 class myTemplate(SimpleDocTemplate):
@@ -54,8 +55,9 @@ class myTemplate(SimpleDocTemplate):
 
 
 class SynthPage:
-    def __init__(self, filename = 'test.pdf'):
+    def __init__(self, config, filename = 'test.pdf'):
         self.filename = filename
+        self.config = config
         self.doc = myTemplate(filename, pagesize = A4, bottomup = 0, showBoundary = 0, leftMargin = 72)
     @property
     def elements(self):
@@ -64,15 +66,12 @@ class SynthPage:
         return self._elements
     
     def add_table(self):
-        nrows = np.random.randint(4, 15)
-        ncols = np.random.randint(2, 8)
-        grid = True if np.random.random() > 0.7 else False
-        table = SynthTable(nrows = nrows, ncols = ncols, grid = grid).table
+        table = SynthTable(self.config['table']).table
         self.elements.append(table)
 
     def add_paragraph(self):
         n_sentenses = np.random.randint(5, 50)
-        parag = SynthParagraph(n_sentenses = n_sentenses).paragraph
+        parag = SynthParagraph(self.config['paragraph']).paragraph
         self.elements.append(parag)
 
     def add_spacer(self):
@@ -134,22 +133,38 @@ class SynthPage:
 class SynthParagraph:
     CN_CHAR_FILE = 'char_data/JianTi3500.txt'
     cn_char_cache = []
-    def __init__(self, n_sentenses = 30):
-        self.n_sentenses = n_sentenses
-        self.paragraph_style = ParagraphStyle(fontName = 'SimSun', fontSize = 12, name = 'Song', firstLineIndent = 24, alignment = TA_JUSTIFY)
+    def __init__(self, config):
+        self.config = config
+        self.n_sentences  = config['n_sentences']
+        #self.paragraph_style = ParagraphStyle(fontName = 'SimSun', fontSize = 12, name = 'Song', firstLineIndent = 24, alignment = TA_JUSTIFY)
         
+    @property
+    def n_sentences(self):
+        return self._n_sentences
 
+    @n_sentences.setter
+    def n_sentences(self, num):
+        if len(num) == 1:
+            self._n_sentences = num[0]
+        elif len(num) == 2:
+            self._n_sentences = np.random.choice(range(num[0], num[1] + 1))
+        else:
+            self._n_sentences = np.random.choice(num)
+        
+        
     @property
     def paragraph(self):
         #seperator = [', ', '，', ': ', '： ', '. ', '。', '! ', '！ ', '? ', '？ ']
         seperator = [',', '.', '!']
-        all_words = [self._gen_random_sentence() for _ in range(self.n_sentenses)]
+        all_words = [self._gen_random_sentence() for _ in range(self._n_sentences)]
         text = ''
         for w in all_words:
             text += w
             text += np.random.choice(seperator)
-        return Paragraph(text, self.paragraph_style)
+        paragraph_style = ParagraphStyleGenerator(self.config).style()
+        return Paragraph(text, paragraph_style)
     
+
     @property
     def cnChar(self):
         if not self.cn_char_cache:
@@ -176,19 +191,37 @@ class SynthTable:
     CN_CHAR_FILE = 'char_data/JianTi3500.txt'
     cn_char_cache = []
     
-    def __init__(self, nrows = 5, ncols = 4, grid = True, N = 1, random = True):
-        self.num = N
-        self.nrows = nrows
-        self.ncols = ncols 
-        self.grid = grid
-        self.random = random
-        self.grid_table_style =  TableStyle([ ('FONT', (0,0), (-1,-1), 'SimSun'),
-                                              ('ALIGN',(0,0),(-1,-1),'CENTER'),
-                                              ('FONTSIZE', (0,0), (-1,-1), 12),
-                                              ('GRID', (0,0), (-1,-1), 1, colors.black)])
-        self.gridless_table_style = [('FONT', (0,0), (-1,-1), 'SimSun'),
-                                     ('FONTSIZE', (0,0), (-1,-1), 12),] 
+    def __init__(self, config):
+        self.config = config 
+        self.nrows = config['layout']['nrows']
+        self.ncols = config['layout']['ncols']
 
+    @property
+    def ncols(self):
+        return self._ncols
+
+    @ncols.setter
+    def ncols(self, cols):
+        if len(cols) == 1:
+            self._ncols == cols[0]
+        elif len(cols) == 2:
+            self._ncols = np.random.choice(range(cols[0], cols[1] + 1))
+        else:
+            self._ncols = np.random.choice(cols)
+
+    @property
+    def nrows(self):
+        return self._nrows
+
+    @nrows.setter
+    def nrows(self, rows):
+        if len(rows) == 1:
+            self._nrows == rows[0]
+        elif len(rows) == 2:
+            self._nrows = np.random.choice(range(rows[0], rows[1] + 1))
+        else:
+            self._nrows = np.random.choice(rows)
+            
     @property
     def cnChar(self):
         if not self.cn_char_cache:
@@ -211,10 +244,10 @@ class SynthTable:
         return word
 
     def _gen_random_row_header(self, min_len = 2, max_len = 6):
-        return [self._gen_random_word([min_len, max_len]) for _ in range(self.nrows)]
+        return [self._gen_random_word([min_len, max_len]) for _ in range(self._nrows)]
 
     def _gen_random_col_header(self, min_len = 2, max_len = 6):
-        return [self._gen_random_word([min_len, max_len]) for _ in range(self.ncols)]
+        return [self._gen_random_word([min_len, max_len]) for _ in range(self._ncols)]
         
     def _gen_random_content(self, num, kind = 'number', n_digits = 2, n_integer = 6):
         numbers = list(range(0, 10)) 
@@ -229,17 +262,17 @@ class SynthTable:
         if rowHeader is None:
             rowHeader = self._gen_random_row_header()
         if tableContent is None:
-            tableContent = self._gen_random_content((self.ncols - 1) * (self.nrows - 1))
+            tableContent = self._gen_random_content((self._ncols - 1) * (self._nrows - 1))
             
         table_data = []
         content_ptr = 0
-        for i in range(self.nrows):
+        for i in range(self._nrows):
             if i == 0:
-                table_data.append(colHeader[:self.ncols])
+                table_data.append(colHeader[:self._ncols])
             else:
-                table_data.append([rowHeader.pop()] + tableContent[content_ptr: content_ptr + self.ncols -1])
-                content_ptr += self.ncols  - 1
-        style = self.grid_table_style if self.grid else self.gridless_table_style
+                table_data.append([rowHeader.pop()] + tableContent[content_ptr: content_ptr + self._ncols -1])
+                content_ptr += self._ncols  - 1
+        style = TableStyleGenerator(self.config).style()
         table = Table(table_data, style = style)
         return table
 
@@ -249,9 +282,11 @@ class SynthTable:
 #print(tb.table)
 
 # pa = SynthParagraph()
-# print(pa.paragraph)
+# printa.paragraph)
 
-sp = SynthPage()
+config =  load_yaml('config.yaml')
+
+sp = SynthPage(config)
 sp.add_spacer()
 sp.add_paragraph()
 sp.add_spacer()

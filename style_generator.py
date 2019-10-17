@@ -6,7 +6,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import TableStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_JUSTIFY
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT
 
 FONT_PATH = 'fonts'
 
@@ -117,7 +117,7 @@ class ParagraphStyleGenerator:
                                name = 'custom',
                                leading = self._gen_leading(),
                                firstLineIndent = 24,
-                               alignment = TA_JUSTIFY)
+                               alignment = self._gen_align())
         return style
     
     def _gen_font(self):
@@ -164,6 +164,22 @@ class ParagraphStyleGenerator:
         del self._fontsize
         
         return leading
+
+    def _gen_align(self):
+        alignment = self.config['align']
+        align_dict = {'justify': TA_JUSTIFY,
+                      'center': TA_CENTER,
+                      'left': TA_LEFT,
+                      'right': TA_RIGHT}
+        
+        if len(alignment) == 0:
+            align = np.random.choice([TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT])
+        elif len(alignment) == 1:
+            align = align_dict[alignment[0]]
+        else:
+            align = np.random.choice([align_dict[x] for x in alignment])
+        return align
     
+        
 # config =  load_yaml('config.yaml')
 # print(ParagraphStyleGenerator(config['paragraph']).style())

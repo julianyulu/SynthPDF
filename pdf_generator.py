@@ -76,8 +76,19 @@ class SynthPage:
 
     def add_spacer(self):
         W, H = A4
-        spacer = Spacer(W, 24)
+        height = self.config['spacer']['height']
+        if len(height) == 1:
+            h = height[0]
+        elif len(height) == 2:
+            h = np.random.randint(height[0], height[1] + 1)
+        else:
+            h = np.random.choice(height)
+        spacer = Spacer(W, h)
         self.elements.append(spacer)
+
+    def add_title(self):
+        title = SynthTitle(self.config['title']).title
+        self.elements.append(title)
         
     def as_pdf(self):
         self.doc.build(self.elements)
@@ -136,7 +147,6 @@ class SynthParagraph:
     def __init__(self, config):
         self.config = config
         self.n_sentences  = config['n_sentences']
-        #self.paragraph_style = ParagraphStyle(fontName = 'SimSun', fontSize = 12, name = 'Song', firstLineIndent = 24, alignment = TA_JUSTIFY)
         
     @property
     def n_sentences(self):
@@ -156,7 +166,8 @@ class SynthParagraph:
     def paragraph(self):
         #seperator = [', ', '，', ': ', '： ', '. ', '。', '! ', '！ ', '? ', '？ ']
         seperator = [',', '.', '!']
-        all_words = [self._gen_random_sentence() for _ in range(self._n_sentences)]
+        lb_sentence, ub_sentence = self.config['sentence_length']
+        all_words = [self._gen_random_sentence([lb_sentence, ub_sentence]) for _ in range(self._n_sentences)]
         text = ''
         for w in all_words:
             text += w
@@ -182,8 +193,23 @@ class SynthParagraph:
         word = ''.join(np.random.choice(self.cnChar, size = word_len, replace = True).tolist())
         return word
 
+class SynthTitle(SynthParagraph):
+    def __init__(self, config):
+        super().__init__(config)
+    
+    @property
+    def paragraph(self):
+        pass
 
+    @property
+    def title(self):
+        lb_sentence, ub_sentence = self.config['sentence_length']
+        all_words = [self._gen_random_sentence([lb_sentence, ub_sentence]) for _ in range(self.config['n_lines'][0], self.config['n_lines'][1])]
+        text = '<br />\n'.join(all_words)
         
+        title_style = ParagraphStyleGenerator(self.config).style()
+        return Paragraph(text, title_style)    
+    
 class SynthTable:
     fileColName = 'data/colName'
     fileColValue = 'data/colValue'
@@ -256,6 +282,19 @@ class SynthTable:
         all_ints = np.random.randint(10**n_integer, 10**(n_integer + 1), num).tolist()
         return ['.'.join([str(x), str(y)]) for x, y in zip(all_ints, all_digits)]
 
+    def _gen_table_space(self):
+        space_before = self._gen_random_int_from_list(self.config['layout']['space_before'])
+        space_after = self._gen_random_int_from_list(self.config['layout']['space_after'])
+        return space_before, space_after
+
+    def _gen_random_int_from_list(self, inlist):
+        if len(inlist) == 1:
+            return inlist[0]
+        elif len(inlist) == 2:
+            return np.random.randint(inlist[0], inlist[1])
+        else:
+            return np.random.choice(inlist)
+        
     def _gen_table_content(self, colHeader = None, rowHeader = None, tableContent = None):
         if colHeader is None:
             colHeader = self._gen_random_col_header()
@@ -272,9 +311,58 @@ class SynthTable:
             else:
                 table_data.append([rowHeader.pop()] + tableContent[content_ptr: content_ptr + self._ncols -1])
                 content_ptr += self._ncols  - 1
+
+        space_before, space_after = self._gen_table_space()
         style = TableStyleGenerator(self.config).style()
-        table = Table(table_data, style = style)
+        table = Table(table_data,
+                      style = style,
+                      spaceBefore = space_before,
+                      spaceAfter = space_after)
         return table
+
+
+class PageMixer:
+    def __init__(self, config):
+        self.config = config
+        self.page = SynthPage(config) 
+        self.elements = [x for x in dir(self.page) if x.startswith('add_')]
+
+    def _make_prob_book(self):
+        mixer_config = self.config['mixer']
+        prob_book = {x.split('prob_')[1]: mixer_config[x] for x in mixer_config if 'prob_' in x}
+        sum_prob = sum(prob_book.values())
+        acc_prob = 0
+        for key in prob_book:
+            prob_book[key] = [acc_prob, prob_book[key] / sum_prob]
+            acc_prob += prob_book[key][1]
+        return prob_book
+
+    def make_single(self):
+        prob_book = self._make_prob_book()
+        max_elements = self.config['mixer']['max_elements_per_page']
+        lb_tables = self.config['mixer']['min_tables_per_page']
+        ub_tables = self.config['mixer']['max_tables_per_page']
+        n_tables = np.random.randint(lb_tables, ub_tables + 1)
+
+        select_elements = ['add_table'] * n_tables
+        n_elements = len(select_elements)        
+        while n_elements < max_elements:
+            elem = np.random.choice(self.elements)
+            select_elements.append(elem)
+            n_elements += 1
+        np.random.shuffle(select_elements)
+
+        for op in select_elements:
+            self.page.__getattribute__(op)()
+
+        if self.config['mixer']['as_pdf']:
+            self.page.as_pdf()
+
+        if self.config['mixer']['as_img']:
+            self.page.as_img()
+
+        if self.config['mixer']['annotate']:
+            self.page.annotate()
 
 # ======================= run ============================
 
@@ -285,21 +373,15 @@ class SynthTable:
 # printa.paragraph)
 
 config =  load_yaml('config.yaml')
-
-sp = SynthPage(config)
-sp.add_spacer()
-sp.add_paragraph()
-sp.add_spacer()
-sp.add_table()
-sp.add_spacer()
-sp.add_paragraph()
-sp.add_spacer()
-sp.add_paragraph()
-sp.add_spacer()
-sp.add_table()
-sp.add_spacer()
-
-sp.as_pdf()
-sp.as_img()
-sp.annotate(show = False)
+m = PageMixer(config)
+m.make_single()
+# sp = SynthPage(config)
+# sp.add_spacer()
+# sp.add_title()
+# sp.add_paragraph()
+# sp.add_spacer()
+# sp.add_table()
+# sp.as_pdf()
+# sp.as_img()
+# sp.annotate(show = False)
 

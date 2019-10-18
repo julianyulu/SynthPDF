@@ -1,6 +1,5 @@
 *~
 *.ttf
 __pycache__/
-*data*/
 fonts/
 output*/

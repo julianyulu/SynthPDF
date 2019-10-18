@@ -1,17 +1,11 @@
 app_name: SynthPDF
-
-
-
-
-# chars:
-#   cn_char_file: 'char_data/JianTi3500.txt'
-#   symbol_char_file: 'char_data/FuHao110.txt'
-#   number_char_file: 'char_data/ShuZiZiMu62.txt'
+author: Julian Lu
+email: julianlu@wezhuiyi.com
 
 runner:
-  n_files: 20
+  n_files: 50000
   run_parallel: true
-  num_processors: 8
+  num_processors: 32
 
 io:
   output_path: 'outputs'

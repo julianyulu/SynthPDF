@@ -15,7 +15,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 import os
 import cv2 
 import numpy as np
-from utils import pdf2img, load_yaml
+from utils import pdf2img, load_yaml, random_integer_from_list, prob2category
 import matplotlib.pyplot as plt 
 
 from style_generator import TableStyleGenerator, ParagraphStyleGenerator
@@ -77,12 +77,7 @@ class SynthPage:
     def add_spacer(self):
         W, H = A4
         height = self.config['spacer']['height']
-        if len(height) == 1:
-            h = height[0]
-        elif len(height) == 2:
-            h = np.random.randint(height[0], height[1] + 1)
-        else:
-            h = np.random.choice(height)
+        h = random_integer_from_list(height)
         spacer = Spacer(W, h)
         self.elements.append(spacer)
 
@@ -154,13 +149,7 @@ class SynthParagraph:
 
     @n_sentences.setter
     def n_sentences(self, num):
-        if len(num) == 1:
-            self._n_sentences = num[0]
-        elif len(num) == 2:
-            self._n_sentences = np.random.choice(range(num[0], num[1] + 1))
-        else:
-            self._n_sentences = np.random.choice(num)
-        
+        self._n_sentences = random_integer_from_list(num)
         
     @property
     def paragraph(self):
@@ -185,11 +174,7 @@ class SynthParagraph:
         return self.cn_char_cache
         
     def _gen_random_sentence(self, length = [2, 20]):
-        if type(length) == list:
-            word_len = np.random.choice(np.arange(length[0], length[1] + 1))
-        else:
-            word_len = length
-                        
+        word_len = random_integer_from_list(length)                
         word = ''.join(np.random.choice(self.cnChar, size = word_len, replace = True).tolist())
         return word
 
@@ -206,7 +191,6 @@ class SynthTitle(SynthParagraph):
         lb_sentence, ub_sentence = self.config['sentence_length']
         all_words = [self._gen_random_sentence([lb_sentence, ub_sentence]) for _ in range(self.config['n_lines'][0], self.config['n_lines'][1])]
         text = '<br />\n'.join(all_words)
-        
         title_style = ParagraphStyleGenerator(self.config).style()
         return Paragraph(text, title_style)    
     
@@ -228,12 +212,7 @@ class SynthTable:
 
     @ncols.setter
     def ncols(self, cols):
-        if len(cols) == 1:
-            self._ncols == cols[0]
-        elif len(cols) == 2:
-            self._ncols = np.random.choice(range(cols[0], cols[1] + 1))
-        else:
-            self._ncols = np.random.choice(cols)
+        self._ncols = random_integer_from_list(cols)
 
     @property
     def nrows(self):
@@ -241,77 +220,74 @@ class SynthTable:
 
     @nrows.setter
     def nrows(self, rows):
-        if len(rows) == 1:
-            self._nrows == rows[0]
-        elif len(rows) == 2:
-            self._nrows = np.random.choice(range(rows[0], rows[1] + 1))
-        else:
-            self._nrows = np.random.choice(rows)
+        self._nrows = random_integer_from_list(rows)
             
     @property
     def cnChar(self):
-        if not self.cn_char_cache:
+        if not hasattr(self, '_cn_char_cache'):
             with open(self.CN_CHAR_FILE, 'r') as fid:
                 content = fid.readlines()
-            self.cn_char_cache = [x.strip() for x in content]
-        return self.cn_char_cache
+            self._cn_char_cache = [x.strip() for x in content]
+        return self._cn_char_cache
 
     @property
-    def table(self):
-        return self._gen_table_content()
+    def enChar(self):
+        if not hasattr(self, '_en_char_cache'):
+            content = list('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+            self._en_char_cache = content
+        return self._en_char_cache
+
+    @property
+    def cnSymbol(self):
+        if not hasattr(self, '_cn_symbol_cache'):
+            symbols = list("，。、：！？")
+            self._cn_symbol_cache = symbols
+        return self._cn_symbol_cache
+
+    @property
+    def enSymbol(self):
+        if not hasattr(self, '_en_symbol_cache'):
+            symbols = list(",.?!()")
+            self._en_symbol_cache = symbols
+        return self._en_symbol_cache
     
-    def _gen_random_word(self, length = [2, 6], random_length = False):
-        if type(length) == list:
-            word_len = np.random.choice(np.arange(length[0], length[1] + 1))
-        else:
-            word_len = length
-                        
-        word = ''.join(np.random.choice(self.cnChar, size = word_len, replace = True).tolist())
-        return word
+    @property
+    def table(self):
+        cfg_blocks = self.config['content']['blocks']
+        cfg_number = self.config['content']['numbers']
+        cfg_cn = self.config['content']['cn_chars']
+        cfg_en = self.config['content']['en_chars']
+        cfg_special = self.config['content']['special']
 
-    def _gen_random_row_header(self, min_len = 2, max_len = 6):
-        return [self._gen_random_word([min_len, max_len]) for _ in range(self._nrows)]
+        # First generate row/col headers  [list of n_col or n_row elements
+        row_header = self._gen_cell_content(cfg_blocks['row_header'],  self.nrows)
+        col_header = self._gen_cell_content(cfg_blocks['col_header'],  self.ncols)
 
-    def _gen_random_col_header(self, min_len = 2, max_len = 6):
-        return [self._gen_random_word([min_len, max_len]) for _ in range(self._ncols)]
-        
-    def _gen_random_content(self, num, kind = 'number', n_digits = 2, n_integer = 6):
-        numbers = list(range(0, 10)) 
-        all_digits = [np.random.choice(numbers, n_digits) for _ in range(num)]
-        all_digits = [''.join([str(x) for x in digit]) for digit in all_digits]
-        all_ints = np.random.randint(10**n_integer, 10**(n_integer + 1), num).tolist()
-        return ['.'.join([str(x), str(y)]) for x, y in zip(all_ints, all_digits)]
+        # Then generate table contents [ list of (col-1)*(row-1) elements
+        content = self._gen_cell_content(cfg_blocks['content'],  (self.ncols - 1) * (self.nrows - 1))
 
-    def _gen_table_space(self):
-        space_before = self._gen_random_int_from_list(self.config['layout']['space_before'])
-        space_after = self._gen_random_int_from_list(self.config['layout']['space_after'])
-        return space_before, space_after
+        #print(self.nrows, self.ncols, '\n', content)
+        # Then add special docorations
+        #prob_underline = cfg_special['prob_underline']
+        prob_parentheses = cfg_special['prob_parentheses']
+        prob_empty = cfg_special['prob_empty']
+        prob_dash = cfg_special['prob_dash'] 
+        content = self._decorate_parentheses(content, prob_parentheses)
+        #content = self._decorate_underline(content, prob_underline)
+        content = self._decorate_empty(content, prob_empty)
+        content = self._decorate_dash(content, prob_dash)
 
-    def _gen_random_int_from_list(self, inlist):
-        if len(inlist) == 1:
-            return inlist[0]
-        elif len(inlist) == 2:
-            return np.random.randint(inlist[0], inlist[1])
-        else:
-            return np.random.choice(inlist)
-        
-    def _gen_table_content(self, colHeader = None, rowHeader = None, tableContent = None):
-        if colHeader is None:
-            colHeader = self._gen_random_col_header()
-        if rowHeader is None:
-            rowHeader = self._gen_random_row_header()
-        if tableContent is None:
-            tableContent = self._gen_random_content((self._ncols - 1) * (self._nrows - 1))
-            
-        table_data = []
+        # Then merge content with headers to a [n_rows x n_cols] list
         content_ptr = 0
-        for i in range(self._nrows):
+        table_data = [] 
+        for i in range(self.nrows):
             if i == 0:
-                table_data.append(colHeader[:self._ncols])
+                table_data.append(col_header[:self._ncols])
             else:
-                table_data.append([rowHeader.pop()] + tableContent[content_ptr: content_ptr + self._ncols -1])
+                table_data.append([row_header.pop()] + content[content_ptr: content_ptr + self._ncols -1])
                 content_ptr += self._ncols  - 1
 
+        # Finally build the table instance
         space_before, space_after = self._gen_table_space()
         style = TableStyleGenerator(self.config).style()
         table = Table(table_data,
@@ -319,6 +295,81 @@ class SynthTable:
                       spaceBefore = space_before,
                       spaceAfter = space_after)
         return table
+    
+    def _gen_random_cn_sentence(self, length = [2, 6]):
+        word_len = random_integer_from_list(length)
+        sentence = ''.join(np.random.choice(self.cnChar, size = word_len, replace = True).tolist())
+        return sentence
+
+    def _gen_random_en_word(self, length = [2, 6]):
+        word_len = random_integer_from_list(length)
+        word = ''.join(np.random.choice(self.enChar, size = word_len, replace = True).tolist())
+        return word
+    
+    def _gen_random_cn_symbol(self):
+        return np.random.choice(self.cnSymbol)
+    
+    def _gen_random_en_symbol(self):
+        return np.random.choice(self.enSymbol)
+    
+    def _gen_random_decimal(self, n_integers = [4], n_digits = [2]):
+        n_int = random_integer_from_list(n_integers)
+        n_dig = random_integer_from_list(n_digits)
+        part_int = ''.join(np.random.choice(list('0123456789'), size = n_int, replace = True))
+        part_dig = ''.join(np.random.choice(list('0123456789'), size = n_dig, replace = True))
+        if len(part_dig) == 0:
+            return part_int
+        elif len(part_int) == 0:
+            part_int = '0'
+            return '.'.join([part_int, part_dig])
+        else:
+            return '.'.join([part_int, part_dig])
+
+    def _gen_random_percents(self, n_integers = [4], n_digits = [2]):
+        part_number = self._gen_random_decimal(n_integers, n_digits)
+        return ''.join([part_number, '%'])
+
+    # def _decorate_underline(self, source_list, prob):
+    #     dst_list = ['<p><u>' + s + '</u></p>' if np.random.random() <= prob else s for s in source_list]
+    #     return dst_list
+
+    def _decorate_parentheses(self, source_list, prob):
+        dst_list = ['(' + s + ')' if np.random.random() <= prob else s for s in source_list]
+        return dst_list 
+
+    def _decorate_empty(self, source_list, prob):
+        dst_list = [' ' if np.random.random() <= prob else s for s in source_list]
+        return dst_list
+
+    def _decorate_dash(self, source_list, prob):
+        dst_list = ['-' if np.random.random() <= prob else s  for s in source_list]
+        return dst_list
+    
+    def _gen_cell_content(self, sub_block_config, N):
+        prob2item = prob2category(sub_block_config)
+        result = [] 
+        for _ in range(N):
+            rand = np.random.random()
+            category = prob2item(rand)
+            if 'number' in category:
+                res = self._gen_random_decimal(self.config['content']['numbers']['n_integers'],
+                                         self.config['content']['numbers']['n_digits'])
+            elif 'cn_char' in category:
+                res = self._gen_random_cn_sentence(self.config['content']['cn_chars']['word_length'])
+            elif 'en_char' in category:
+                res = self._gen_random_en_word(self.config['content']['en_chars']['word_length'])
+            elif '_percent' in category:
+                res = self._gen_random_percents(self.config['content']['numbers']['n_integers'],
+                                                self.config['content']['numbers']['n_digits'])
+            else:
+                raise ValueError("category not recognized: %s"%category)
+            result.append(res)
+        return result
+
+    def _gen_table_space(self):
+        space_before = random_integer_from_list(self.config['layout']['space_before'])
+        space_after = random_integer_from_list(self.config['layout']['space_after'])
+        return space_before, space_after
 
 
 class PageMixer:
@@ -351,7 +402,7 @@ class PageMixer:
             select_elements.append(elem)
             n_elements += 1
         np.random.shuffle(select_elements)
-
+        #print(select_elements)
         for op in select_elements:
             self.page.__getattribute__(op)()
 
@@ -366,22 +417,30 @@ class PageMixer:
 
 # ======================= run ============================
 
-#tb = SynthTable(nrows = 5, ncols = 3)
+config =  load_yaml('config.yaml')
+
+#Test Table 
+#tb = SynthTable(config['table'])
+#print(tb.nrows, tb.ncols)
 #print(tb.table)
 
+## Test Paragraph
 # pa = SynthParagraph()
 # printa.paragraph)
 
-config =  load_yaml('config.yaml')
-m = PageMixer(config)
-m.make_single()
+# ##Test SynthPage
 # sp = SynthPage(config)
 # sp.add_spacer()
 # sp.add_title()
+# sp.add_paragraph()
 # sp.add_paragraph()
 # sp.add_spacer()
 # sp.add_table()
 # sp.as_pdf()
 # sp.as_img()
 # sp.annotate(show = False)
+
+## Test Mixer 
+m = PageMixer(config)
+m.make_single()
 

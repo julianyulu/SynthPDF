@@ -113,7 +113,8 @@ class ParagraphStyleGenerator:
         style = ParagraphStyle(fontName = self._gen_font(), 
                                fontSize = self._gen_font_size(),
                                textColor = self._gen_font_color(),
-                               spaceBefore = 100, 
+                               spaceBefore = self._gen_space_before(),
+                               spaceAfter = self._gen_space_after(), 
                                name = 'custom',
                                leading = self._gen_leading(),
                                firstLineIndent = 24,
@@ -180,6 +181,29 @@ class ParagraphStyleGenerator:
             align = np.random.choice([align_dict[x] for x in alignment])
         return align
     
-        
+    def _gen_space_before(self):
+        space_before = self.config['space_before']
+        if len(space_before) == 0:
+            space = 0 
+        elif len(space_before) == 1:
+            space = space_before[0]
+        elif len(space_before) == 2:
+            space = np.random.randint(space_before[0], space_before[1])
+        else:
+            space = np.random.choice(space_before)
+        return space
+
+    def _gen_space_after(self):
+        space_after = self.config['space_after']
+        if len(space_after) == 0:
+            space = 0 
+        elif len(space_after) == 1:
+            space = space_after[0]
+        elif len(space_after) == 2:
+            space = np.random.randint(space_after[0], space_after[1])
+        else:
+            space = np.random.choice(space_after)
+        return space
+    
 # config =  load_yaml('config.yaml')
 # print(ParagraphStyleGenerator(config['paragraph']).style())

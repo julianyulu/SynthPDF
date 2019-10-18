@@ -53,15 +53,15 @@ def b642pdf(b64str, save_path = 'pdf_files'):
         pf.write(base64.b64decode(b64str)) # encode here converts str to bytes
     return save_name 
 
-def pdf2img(pdf_path, dpi = 150, image_path = 'output_imgs'):
+def pdf2img(pdf_file, save_path = 'output_imgs', dpi = 150):
     ## Below comment works for multi-page pdf
-    if not os.path.exists(image_path): os.mkdir(image_path)
-    pages = convert_from_path(pdf_path, dpi)
-    file_prefix = os.path.basename(pdf_path).split('.pdf')[0]
+    if not os.path.exists(save_path): os.mkdir(save_path)
+    pages = convert_from_path(pdf_file, dpi)
+    file_prefix = os.path.basename(pdf_file).split('.pdf')[0]
     save_names = []
     for i,page in enumerate(pages):
         filename = file_prefix + '_page%d'%(i + 1) + '.jpg'
-        save_name = os.path.join(image_path, filename)
+        save_name = os.path.join(save_path, filename)
         page.save(save_name, 'JPEG')
         save_names.append(save_name)
     return save_names

@@ -1,26 +1,16 @@
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen.canvas import Canvas
-
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, BaseDocTemplate
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_JUSTIFY
-
-from reportlab.lib.pagesizes import inch
-from reportlab.pdfbase.pdfmetrics import stringWidth
-
 import os
-import cv2 
+import cv2
+import json
+import uuid 
 import numpy as np
-from utils import pdf2img, load_yaml, random_integer_from_list, prob2category
+from tqdm import tqdm
+from multiprocessing import Pool
 import matplotlib.pyplot as plt 
 
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
+from utils import pdf2img, load_yaml, random_integer_from_list, prob2category
 from style_generator import TableStyleGenerator, ParagraphStyleGenerator
-
-pdfmetrics.registerFont(TTFont('SimSun', 'fonts/SimSun.ttf'))
 
 
 class myTemplate(SimpleDocTemplate):
@@ -32,7 +22,6 @@ class myTemplate(SimpleDocTemplate):
         x_lowerLeft, y_lowerLeft = self.frame._x, self.frame._y
         x_upperRight, y_upperRight = self.frame._x2, self.frame._y2
         x_lowerLeft = x_lowerLeft - self.frame._leftPadding 
-
         if isinstance(flowable, Paragraph):
             kind = 'paragraph'
             width, height = flowable.width, flowable.height
@@ -58,7 +47,31 @@ class SynthPage:
     def __init__(self, config, filename = 'test.pdf'):
         self.filename = filename
         self.config = config
-        self.doc = myTemplate(filename, pagesize = A4, bottomup = 0, showBoundary = 0, leftMargin = 72)
+        self._initialize()
+        self.doc = myTemplate(self._pdf_file, 
+                              pagesize = A4, bottomup = 0,
+                              showBoundary = 0, leftMargin = 72)
+        
+
+    def _initialize(self):
+        output_path = self.config['io']['output_path']
+        if not os.path.exists(output_path): os.mkdir(output_path)
+        self._output_path = output_path
+        
+        pdf_path = os.path.join(output_path, self.config['io']['pdf_path'])
+        if not os.path.exists(pdf_path): os.mkdir(pdf_path)
+        self._pdf_path = pdf_path
+
+        img_path = os.path.join(output_path, self.config['io']['img_path'])
+        if not os.path.exists(img_path): os.mkdir(img_path)
+        self._img_path = img_path
+
+        json_path = os.path.join(output_path, self.config['io']['json_path'])
+        if not os.path.exists(json_path): os.mkdir(json_path)
+        self._json_path = json_path
+
+        self._pdf_file = os.path.join(pdf_path, self.filename)
+                                
     @property
     def elements(self):
         if not hasattr(self, '_elements'):
@@ -89,9 +102,10 @@ class SynthPage:
         self.doc.build(self.elements)
 
     def as_img(self):
-        if not os.path.isfile(self.filename): self.to_pdf
+        if not os.path.isfile(self._pdf_file): self.as_pdf
         if not hasattr(self, '_img_files'): 
-            image_path = pdf2img(self.filename)
+            image_path = pdf2img(os.path.join(self._pdf_path, self.filename),
+                                 save_path = self._img_path)
             self._img_files = image_path
         return self._img_files 
 
@@ -104,16 +118,18 @@ class SynthPage:
         W_A4, H_A4 = A4
         factor = H / H_A4 
         return (int(x * factor), int(H - y * factor))
+
     
-    def annotate(self, show = False):
+    def annotate(self, show_img = False, save_img = False, save_json = False):
         
         annot = self.doc.coords
-
         # current only annote the first page, as the coords has not info about the page
         img_files = self.as_img()
         img = cv2.imread(img_files[0])
         H, W = img.shape[:2]
 
+        labels = {}
+        idx = 0 
         prev_ycoords = -1  # filter out the annot on the second page
         for elem in annot:
             x_lowerLeft, y_lowerLeft = elem['x'], elem['y']
@@ -123,19 +139,33 @@ class SynthPage:
 
             if y_upperLeft > prev_ycoords:
                 prev_ycoords = y_upperLeft
-                cv2.rectangle(img,
-                              (x_upperLeft, y_upperLeft),
-                              (x_lowerRight, y_lowerRight),
-                              255, 2)
+                labels[idx] = {'kind': elem['kind'],
+                               'p1': (int(x_upperLeft), int(y_upperLeft)),
+                               'p2': (int(x_lowerLeft), int(y_lowerLeft))}
+                idx += 1 
+                if show_img or save_img:
+                    cv2.rectangle(img,
+                                  (x_upperLeft, y_upperLeft),
+                                  (x_lowerRight, y_lowerRight),
+                                  255, 2)
             else:
-                break 
-        save_name = img_files[0].split('.jpg')[0] + '_ann.jpg'
-        cv2.imwrite(save_name, img)
-        if show:
+                break
+        if save_img:
+            save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '_ann.jpg'
+            cv2.imwrite(os.path.join(self._img_path, save_name), img)
+        
+        if show_img:
             plt.figure(figsize = (12, 20))
             plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
             plt.show()
+
+        if save_json:
+            save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '.json'
+            with open(os.path.join(self._json_path, save_name), 'w+') as fid:
+                json.dump(labels, fid)
         
+        return labels # dicts
+    
 class SynthParagraph:
     CN_CHAR_FILE = 'char_data/JianTi3500.txt'
     cn_char_cache = []
@@ -373,9 +403,9 @@ class SynthTable:
 
 
 class PageMixer:
-    def __init__(self, config):
+    def __init__(self, config, filename = 'test.pdf'):
         self.config = config
-        self.page = SynthPage(config) 
+        self.page = SynthPage(config, filename = filename) 
         self.elements = [x for x in dir(self.page) if x.startswith('add_')]
 
     def _make_prob_book(self):
@@ -388,7 +418,7 @@ class PageMixer:
             acc_prob += prob_book[key][1]
         return prob_book
 
-    def make_single(self):
+    def make(self):
         prob_book = self._make_prob_book()
         max_elements = self.config['mixer']['max_elements_per_page']
         lb_tables = self.config['mixer']['min_tables_per_page']
@@ -402,7 +432,6 @@ class PageMixer:
             select_elements.append(elem)
             n_elements += 1
         np.random.shuffle(select_elements)
-        #print(select_elements)
         for op in select_elements:
             self.page.__getattribute__(op)()
 
@@ -413,11 +442,38 @@ class PageMixer:
             self.page.as_img()
 
         if self.config['mixer']['annotate']:
-            self.page.annotate()
+            annot = self.page.annotate(save_img = self.config['mixer']['save_annotate_imgs'],
+                                       show_img = self.config['mixer']['show_annotate_imgs'],
+                                       save_json = self.config['mixer']['save_single_annotate_json'])
+        return annot 
+    
 
-# ======================= run ============================
 
-config =  load_yaml('config.yaml')
+if __name__ == '__main__':
+    config =  load_yaml('config.yaml')
+    cfg_runner = config['runner']
+
+    run_parallel = cfg_runner['run_parallel']
+    n_files = cfg_runner['n_files']
+    n_processors = cfg_runner['num_processors']
+
+    if run_parallel:
+        
+        filenames = [uuid.uuid4().hex + '.pdf' for _ in range(n_files)]
+        SynthPage(config)._initialize() # make output folders to avoid parallel conflict 
+        def runner(filename):
+            _ = PageMixer(config, filename).make()
+        with Pool(n_processors) as p:
+            _ = list(tqdm(p.imap_unordered(runner, filenames), total = n_files))
+    else:
+        for _ in tqdm(range(n_files)):
+            filename = uuid.uuid4().hex + '.pdf'
+            m = PageMixer(config, filename)
+            m.make()
+    
+# ======================= test run ============================
+
+#config =  load_yaml('config.yaml')
 
 #Test Table 
 #tb = SynthTable(config['table'])
@@ -441,6 +497,6 @@ config =  load_yaml('config.yaml')
 # sp.annotate(show = False)
 
 ## Test Mixer 
-m = PageMixer(config)
-m.make_single()
-
+# m = PageMixer(config)
+# m.make()
+#print(m.page.doc.coords)

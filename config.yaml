@@ -1,11 +1,23 @@
 app_name: SynthPDF
 
 
-chars:
-  cn_char_file: 'char_data/JianTi3500.txt'
-  symbol_char_file: 'char_data/FuHao110.txt'
-  number_char_file: 'char_data/ShuZiZiMu62.txt'
 
+
+# chars:
+#   cn_char_file: 'char_data/JianTi3500.txt'
+#   symbol_char_file: 'char_data/FuHao110.txt'
+#   number_char_file: 'char_data/ShuZiZiMu62.txt'
+
+runner:
+  n_files: 20
+  run_parallel: true
+  num_processors: 8
+
+io:
+  output_path: 'outputs'
+  pdf_path: 'pdfs'
+  img_path: 'imgs'
+  json_path: 'jsons'
 
 mixer:
   prob_title: 0.2
@@ -17,6 +29,9 @@ mixer:
   as_img: true
   as_pdf: true
   annotate: true
+  save_annotate_imgs: true
+  show_annotate_imgs: false
+  save_single_annotate_json: true
 
 
 table:
@@ -34,7 +49,7 @@ table:
 
   line:
     grid_prob: 0.5 # The probability of having grid linesx
-    grid_color: ['red', 'green', 'grey', 'black', 'pink', 'lavender', 'orange', 'blue', 'yellow']
+    grid_color: ['black'] # ['red', 'green', 'grey', 'black', 'pink', 'lavender', 'orange', 'blue', 'yellow']
     grid_line_width: [1]
 
   content:

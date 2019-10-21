@@ -19,6 +19,8 @@ class myTemplate(SimpleDocTemplate):
         self.coords = []
 
     def afterFlowable(self, flowable):
+        #print(type(flowable))
+        #print(self.frame.__dict__)
         x_lowerLeft, y_lowerLeft = self.frame._x, self.frame._y
         x_upperRight, y_upperRight = self.frame._x2, self.frame._y2
         x_lowerLeft = x_lowerLeft - self.frame._leftPadding 
@@ -35,6 +37,7 @@ class myTemplate(SimpleDocTemplate):
             return -1
         
         x_lowerLeft = (x_upperRight + x_lowerLeft) / 2 - width / 2
+        y_lowerLeft = y_lowerLeft + self.frame._prevASpace
         result =  {'kind':  kind,
                    'x': x_lowerLeft,
                    'y': y_lowerLeft, 
@@ -171,22 +174,22 @@ class SynthParagraph:
     cn_char_cache = []
     def __init__(self, config):
         self.config = config
-        self.n_sentences  = config['n_sentences']
-        
-    @property
-    def n_sentences(self):
-        return self._n_sentences
-
-    @n_sentences.setter
-    def n_sentences(self, num):
-        self._n_sentences = random_integer_from_list(num)
         
     @property
     def paragraph(self):
         #seperator = [', ', '，', ': ', '： ', '. ', '。', '! ', '！ ', '? ', '？ ']
         seperator = [',', '.', '!']
-        lb_sentence, ub_sentence = self.config['sentence_length']
-        all_words = [self._gen_random_sentence([lb_sentence, ub_sentence]) for _ in range(self._n_sentences)]
+        cfg_para_long = self.config['long']
+        cfg_para_short = self.config['short']
+        prob_long = cfg_para_long['prob']
+        prob_short = cfg_para_short['prob']
+        prob_short = prob_short / (prob_short + prob_long)
+
+        # select by prob to have long/short paragraph 
+        cfg_select = cfg_para_short if np.random.random() < prob_short else cfg_para_long 
+        lb_sentence, ub_sentence = cfg_select['sentence_length']
+        n_sentences = random_integer_from_list(cfg_select['n_sentences'])
+        all_words = [self._gen_random_sentence([lb_sentence, ub_sentence]) for _ in range(n_sentences)]
         text = ''
         for w in all_words:
             text += w
@@ -425,6 +428,7 @@ class PageMixer:
         ub_tables = self.config['mixer']['max_tables_per_page']
         n_tables = np.random.randint(lb_tables, ub_tables + 1)
 
+        # fist gen random number table elements 
         select_elements = ['add_table'] * n_tables
         n_elements = len(select_elements)        
         while n_elements < max_elements:
@@ -432,9 +436,19 @@ class PageMixer:
             select_elements.append(elem)
             n_elements += 1
         np.random.shuffle(select_elements)
+
+        # then double check if avoid neighbor tables
+        if self.config['mixer']['avoid_neighbor_tables']:
+            prev = ''
+            for i in range(len(select_elements)):
+                if '_table' in select_elements[i] and '_table' in prev:
+                    select_elements[i] = 'add_paragraph'
+                prev = select_elements[i]
+        # add elements to page from select_elements 
         for op in select_elements:
             self.page.__getattribute__(op)()
 
+        # finally output result file 
         if self.config['mixer']['as_pdf']:
             self.page.as_pdf()
 
@@ -486,15 +500,15 @@ if __name__ == '__main__':
 
 # ##Test SynthPage
 # sp = SynthPage(config)
-# sp.add_spacer()
+# #sp.add_paragraph()
+# #sp.add_table()
+# sp.add_paragraph()
+# sp.add_paragraph()
 # sp.add_title()
 # sp.add_paragraph()
-# sp.add_paragraph()
-# sp.add_spacer()
-# sp.add_table()
 # sp.as_pdf()
 # sp.as_img()
-# sp.annotate(show = False)
+# sp.annotate(save_img = True)
 
 ## Test Mixer 
 # m = PageMixer(config)

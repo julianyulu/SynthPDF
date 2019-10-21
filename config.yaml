@@ -3,9 +3,9 @@ author: Julian Lu
 email: julianlu@wezhuiyi.com
 
 runner:
-  n_files: 50000
+  n_files: 30
   run_parallel: true
-  num_processors: 32
+  num_processors: 8
 
 io:
   output_path: 'outputs'
@@ -19,6 +19,7 @@ mixer:
   prob_spacer: 0.1
   min_tables_per_page: 0
   max_tables_per_page: 4
+  avoid_neighbor_tables: true
   max_elements_per_page: 6
   as_img: true
   as_pdf: true
@@ -32,8 +33,8 @@ table:
   layout:
     nrows: [1, 20]
     ncols: [2, 6]
-    space_before: [0, 10]
-    space_after: [0, 10]
+    space_before: [3, 10]
+    space_after: [3, 10] # frame._prevASpace
 
   cell:
     font_size: [6,13]
@@ -44,7 +45,7 @@ table:
   line:
     grid_prob: 0.5 # The probability of having grid linesx
     grid_color: ['black'] # ['red', 'green', 'grey', 'black', 'pink', 'lavender', 'orange', 'blue', 'yellow']
-    grid_line_width: [1]
+    grid_line_width: [1, 3]
 
   content:
     blocks: # prob of having cn/en/num in tabe hearders
@@ -75,14 +76,20 @@ table:
       #prob_underline: 0.3 # currently not supported for table 
 
 paragraph:
-  n_sentences: [1, 30]
-  sentence_length: [2, 60]
+  long:
+    prob: 0.5
+    n_sentences: [1, 30]
+    sentence_length: [2, 60]
+  short:
+    prob: 0.5
+    n_sentences: [1, 3]
+    sentence_length: [2, 5]
   font_size: [8, 14]
-  leading: [0.8, 3.0]
+  leading: [0.8, 2.0]    # line gap 
   text_color: ['black']  # font name or RGB
   align: [] # Opts: justify, center, left, right
-  space_before: [0, 10] # space above the paragrah block
-  space_after: [0, 10] # space below the paragrah block 
+  space_before: [3, 15] # space above the paragrah block
+  space_after: [3, 15] # space below the paragrah block
 
 title:
   n_lines: [1, 3]
@@ -92,8 +99,8 @@ title:
   sentence_length: [2, 10]
   n_sentences: [1,2]
   align: ['center']
-  space_before: [5, 15]
-  space_after: [5, 15]
+  space_before: [5, 10]
+  space_after: [5, 10]
 
 spacer:
   height: [1, 3]

@@ -3,7 +3,8 @@ import os
 import re
 import base64
 import codecs
-import numpy as np 
+import numpy as np
+
 from pdf2image import convert_from_path
 
 def load_yaml(yaml_file):
@@ -12,10 +13,12 @@ def load_yaml(yaml_file):
     return data
 
 
-def random_integer_from_list(inlist, empty_default = None):
+def random_integer_from_list(inlist, seed = None, empty_default = None):
+    if seed is None:
+        seed = np.random.seed()
     if empty_default is not None and len(inlist) == 0: return empty_default
     elif len(inlist) == 1: return inlist[0]
-    elif len(inlist) == 2: return np.random.randint(inlist[0], inlist[1])
+    elif len(inlist) == 2: return np.random.randint(inlist[0], inlist[1] + 1)
     else: return np.random.choice(inlist)
 
 def prob2category(probdict):
@@ -79,3 +82,5 @@ def b64pdf2img(b64_str, image_path, pdf_temp_path = 'pdf_files', dpi = 150):
 # test_dict = {'a': 0.2, 'b':0.5, 'c': 0.3}
 # func = prob2category(test_dict)
 # print(func(np.random.random()))
+
+

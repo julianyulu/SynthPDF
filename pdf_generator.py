@@ -320,6 +320,13 @@ class SynthTable:
                 table_data.append([row_header.pop()] + content[content_ptr: content_ptr + self._ncols -1])
                 content_ptr += self._ncols  - 1
 
+        # Then add random empty col 
+        if np.random.random() < self.config['space']['prob_empty_col'] and 3<= self._ncols <=5:
+            empty_col = 1 if np.random.random() < 0.5 else np.random.randint(1, self._ncols-1)
+            empty_size = random_integer_from_list(self.config['space']['size_empty_col'])
+            for i in range(len(table_data)):
+                table_data[i][empty_col] = ' ' * empty_size
+                
         # Finally build the table instance
         space_before, space_after = self._gen_table_space()
         style = TableStyleGenerator(self.config).style()
@@ -500,12 +507,11 @@ if __name__ == '__main__':
 
 # ##Test SynthPage
 # sp = SynthPage(config)
-# #sp.add_paragraph()
-# #sp.add_table()
 # sp.add_paragraph()
+# sp.add_table()
 # sp.add_paragraph()
+# sp.add_table()
 # sp.add_title()
-# sp.add_paragraph()
 # sp.as_pdf()
 # sp.as_img()
 # sp.annotate(save_img = True)

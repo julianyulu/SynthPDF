@@ -141,7 +141,7 @@ class SynthPage:
                 prev_ycoords = y_upperLeft
                 labels[idx] = {'kind': elem['kind'],
                                'p1': (int(x_upperLeft), int(y_upperLeft)),
-                               'p2': (int(x_lowerLeft), int(y_lowerLeft))}
+                               'p2': (int(x_lowerRight), int(y_lowerRight))}
                 idx += 1 
                 if show_img or save_img:
                     cv2.rectangle(img,

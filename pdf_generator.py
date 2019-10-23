@@ -12,6 +12,8 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
 from utils import pdf2img, load_yaml, random_integer_from_list, prob2category
 from style_generator import TableStyleGenerator, ParagraphStyleGenerator
 
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle
 
 class myTemplate(SimpleDocTemplate):
     def __init__(self, filename, config, **kw):
@@ -332,7 +334,8 @@ class SynthTable:
         cfg_cn = self.config['content']['cn_chars']
         cfg_en = self.config['content']['en_chars']
         cfg_special = self.config['content']['special']
-
+        table_style = TableStyleGenerator(self.config).style()
+        
         # First generate row/col headers  [list of n_col or n_row elements
         row_header = self._gen_cell_content(cfg_blocks['row_header'],  self.nrows)
         col_header = self._gen_cell_content(cfg_blocks['col_header'],  self.ncols)
@@ -340,14 +343,15 @@ class SynthTable:
         # Then generate table contents [ list of (col-1)*(row-1) elements
         content = self._gen_cell_content(cfg_blocks['content'],  (self.ncols - 1) * (self.nrows - 1))
 
-        #print(self.nrows, self.ncols, '\n', content)
+        
         # Then add special docorations
         #prob_underline = cfg_special['prob_underline']
         prob_parentheses = cfg_special['prob_parentheses']
         prob_empty = cfg_special['prob_empty']
-        prob_dash = cfg_special['prob_dash'] 
+        prob_dash = cfg_special['prob_dash']
+        prob_underline = cfg_special['prob_underline']
         content = self._decorate_parentheses(content, prob_parentheses)
-        #content = self._decorate_underline(content, prob_underline)
+        content = self._decorate_underline(content, prob_underline, table_style)
         content = self._decorate_empty(content, prob_empty)
         content = self._decorate_dash(content, prob_dash)
 
@@ -361,18 +365,23 @@ class SynthTable:
                 table_data.append([row_header.pop()] + content[content_ptr: content_ptr + self._ncols -1])
                 content_ptr += self._ncols  - 1
 
-        # Then add random empty col 
+        # Then add single random empty col 
         if np.random.random() < self.config['space']['prob_empty_col'] and 3<= self._ncols <=5:
+            # set 50% missing cols to be the 2nd col 
             empty_col = 1 if np.random.random() < 0.5 else np.random.randint(1, self._ncols-1)
             empty_size = random_integer_from_list(self.config['space']['size_empty_col'])
             for i in range(len(table_data)):
                 table_data[i][empty_col] = ' ' * empty_size
-                
+
+        # Then add single random empty row only to borderless table 
+        if np.random.random() < self.config['space']['prob_empty_row'] and 4<= self._nrows:
+            empty_row = np.random.randint(1, self._nrows -1) 
+            table_data[empty_row] =  [] *self._ncols
+
         # Finally build the table instance
         space_before, space_after = self._gen_table_space()
-        style = TableStyleGenerator(self.config).style()
         table = Table(table_data,
-                      style = style,
+                      style = table_style,
                       spaceBefore = space_before,
                       spaceAfter = space_after)
         return table
@@ -410,9 +419,19 @@ class SynthTable:
         part_number = self._gen_random_decimal(n_integers, n_digits)
         return ''.join([part_number, '%'])
 
-    # def _decorate_underline(self, source_list, prob):
-    #     dst_list = ['<p><u>' + s + '</u></p>' if np.random.random() <= prob else s for s in source_list]
-    #     return dst_list
+    def _decorate_underline(self, source_list, prob, table_style):
+        """
+        To add underline, the cell content has to be wrapped by Paragraph obj 
+        To keep the same fome style with  the table content, one has to extract 
+        font name/size from the table style. 
+        """
+        cell_font = [x[-1] for x in table_style._cmds if x[0] == 'FONT'][0]
+        cell_font_size = [x[-1] for x in table_style._cmds if x[0] == 'FONTSIZE'][0]
+        #align = [x[-1] for x in table_style._cmds if x[0] == 'ALIGNMENT'][0]
+        cell_style = ParagraphStyle('temp', fontName = cell_font, fontSize = cell_font_size, alignment = 1)
+        dst_list = [Paragraph('<u>' + s + '</u>', cell_style) if np.random.random() <= prob else s for s in source_list]
+        return dst_list
+
 
     def _decorate_parentheses(self, source_list, prob):
         dst_list = ['(' + s + ')' if np.random.random() <= prob else s for s in source_list]
@@ -444,6 +463,12 @@ class SynthTable:
                                                 self.config['content']['numbers']['n_digits'])
             else:
                 raise ValueError("category not recognized: %s"%category)
+
+            # wrap text by probility 
+            if 'wrap' in sub_block_config:
+                if len(res) > 4 and np.random.random() < sub_block_config['wrap']:
+                    mid = len(res) // 2 
+                    res = '\n'.join([res[:mid], res[mid:]])
             result.append(res)
         return result
 
@@ -535,7 +560,7 @@ if __name__ == '__main__':
     
 # ======================= test run ============================
 
-#config =  load_yaml('config.yaml')
+config =  load_yaml('config.yaml')
 
 #Test Table 
 #tb = SynthTable(config['table'])
@@ -557,7 +582,7 @@ if __name__ == '__main__':
 # sp.as_img()
 # sp.annotate(save_img = True)
 
-## Test Mixer 
-# m = PageMixer(config)
-# m.make()
-#print(m.page.doc.coords)
+#Test Mixer 
+m = PageMixer(config)
+m.make()
+print(m.page.doc.coords)

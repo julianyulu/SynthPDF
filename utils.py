@@ -22,7 +22,7 @@ def random_integer_from_list(inlist, seed = None, empty_default = None):
     else: return np.random.choice(inlist)
 
 def prob2category(probdict):
-        items = list(probdict.keys())
+        items = [x for x in probdict.keys() if x.startswith('prob_')]
         probs = [probdict[x] for x in items]
         if not sum(probs) == 1:
             tot = sum(probs)

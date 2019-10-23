@@ -49,6 +49,7 @@ table:
   space:
     prob_empty_col: 0.5
     size_empty_col: [20, 40]
+    prob_empty_row: 0.3
     
   content:
     blocks: # prob of having cn/en/num in tabe hearders
@@ -56,15 +57,18 @@ table:
         prob_number: 0.1
         prob_cn_char: 0.8
         prob_en_char: 0.1
+        wrap: 0.25
       row_header: # need to sum to 1 
         prob_number: 0.1
         prob_cn_char: 0.8
         prob_en_char: 0.1
+        wrap: 0.25
       content: # prob of having cn/en/num in tabel contents
         prob_number: 0.6 # need to sum to 1 
         prob_cn_char: 0.1
         prob_en_char: 0.0
         prob_percent: 0.3
+        wrap: 0.1
     numbers: # number details 
       n_integers: [1, 7]
       n_digits: [0, 4]
@@ -76,7 +80,7 @@ table:
       prob_parentheses: 0.3
       prob_empty: 0.1
       prob_dash: 0.15
-      #prob_underline: 0.3 # currently not supported for table 
+      prob_underline: 0.3 # currently not supported for table 
 
 paragraph:
   long:

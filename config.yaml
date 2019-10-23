@@ -42,7 +42,7 @@ table:
     horizontal_align: ['CENTER'] # Opt: ['LEFT', 'RIGHT', 'CENTER', 'DECIMAL'] if empty, 
     
   line:
-    grid_prob: 0 # The probability of having grid linesx
+    grid_prob: 0.5 # The probability of having grid linesx
     grid_color: ['black'] # ['red', 'green', 'grey', 'black', 'pink', 'lavender', 'orange', 'blue', 'yellow']
     grid_line_width: [1, 2]
 
@@ -107,3 +107,12 @@ title:
 
 spacer:
   height: [1, 3]
+
+
+notFlowables:
+  stamp: # currently only add to bordered table corners
+    prob: 0.3
+    stamp_img_path: img_data/stamps
+    corner_dx: [-20, 20]
+    corner_dy: [-20, 20]
+    width: [30, 70]

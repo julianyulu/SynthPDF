@@ -14,45 +14,85 @@ from style_generator import TableStyleGenerator, ParagraphStyleGenerator
 
 
 class myTemplate(SimpleDocTemplate):
-    def __init__(self, filename, **kw):
+    def __init__(self, filename, config, **kw):
         super().__init__(filename, **kw)
+        self.config = config
         self.coords = []
 
     def afterFlowable(self, flowable):
-        #print(type(flowable))
-        #print(self.frame.__dict__)
         x_lowerLeft, y_lowerLeft = self.frame._x, self.frame._y
         x_upperRight, y_upperRight = self.frame._x2, self.frame._y2
-        x_lowerLeft = x_lowerLeft - self.frame._leftPadding 
+        page_number = self.canv._pageNumber  # start from 1 
+        #print(type(flowable))
+        #print(self.canv._pageNumber)
+        #print(flowable.__dict__)
+        #print(self.frame.__dict__)
+        # parse flowable coords
         if isinstance(flowable, Paragraph):
             kind = 'paragraph'
-            width, height = flowable.width, flowable.height
+            width, height = flowable.width, flowable.height # note the difference from table 
         elif isinstance(flowable, Table):
             kind = 'table'
             width, height = flowable._width, flowable._height
+                        
         # elif isinstance(flowable, Spacer):
         #     kind = 'spacer'
         #     width, height = flowable.width, flowable.height
         else:
             return -1
         
+        # fix shifts
+        x_lowerLeft = x_lowerLeft - self.frame._leftPadding
         x_lowerLeft = (x_upperRight + x_lowerLeft) / 2 - width / 2
-        y_lowerLeft = y_lowerLeft + self.frame._prevASpace
+        y_lowerLeft = y_lowerLeft + self.frame._prevASpace 
+
+        # add flowable result to coords 
         result =  {'kind':  kind,
+                   'page': page_number, 
+                   'is_flowable': True, 
                    'x': x_lowerLeft,
                    'y': y_lowerLeft, 
                    'w': width,
                    'h': height}
         self.coords.append(result)
 
-
+        # Parse special none flowables
+        
+        ## stamp at bordered table corners
+        ## only table has attribute '_linecmds' == [.....]
+        ## Bordered table is a none empty list, while borderless table is [] 
+        if hasattr(flowable, '_linecmds') and flowable._linecmds and np.random.random() < self.config['stamp']['prob']:
+            x_shift = random_integer_from_list(self.config['stamp']['corner_dx'])
+            y_shift = random_integer_from_list(self.config['stamp']['corner_dy'])
+            # choose one of the 4 corners and add shift
+            stamp_width = random_integer_from_list(self.config['stamp']['width'])
+            x_stamp = int(np.random.choice([x_lowerLeft, x_lowerLeft + width]) - stamp_width / 2 + x_shift)
+            y_stamp = int(np.random.choice([y_lowerLeft, y_lowerLeft + height]) - stamp_width / 2 + y_shift)
+            
+            stamp_path = self.config['stamp']['stamp_img_path']
+            stamp_file = np.random.choice(os.listdir(stamp_path))
+            
+            img_width, img_height = self.canv.drawImage(os.path.join(stamp_path, stamp_file),
+                                                        x_stamp, y_stamp, mask = 'auto',
+                                                        anchor = 'c', # anchored at center 
+                                                        width = stamp_width, height = stamp_width)
+                
+            self.coords.append({'kind': 'stamp',
+                                'is_flowable': False,
+                                'page': page_number, 
+                                'x': x_stamp,
+                                'y': y_stamp,
+                                'w': stamp_width,
+                                'h': stamp_width})
+                
 class SynthPage:
     def __init__(self, config, filename = 'test.pdf'):
         self.filename = filename
         self.config = config
         self._initialize()
-        self.doc = myTemplate(self._pdf_file, 
-                              pagesize = A4, bottomup = 0,
+        self.doc = myTemplate(self._pdf_file,
+                              config['notFlowables'],
+                              pagesize = A4, bottomup = 1,
                               showBoundary = 0, leftMargin = 72)
         
 
@@ -140,8 +180,8 @@ class SynthPage:
             x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
             x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
 
-            if y_upperLeft > prev_ycoords:
-                prev_ycoords = y_upperLeft
+            if elem['page'] == 1:
+                #prev_ycoords = y_upperLeft
                 labels[idx] = {'kind': elem['kind'],
                                'p1': (int(x_upperLeft), int(y_upperLeft)),
                                'p2': (int(x_lowerRight), int(y_lowerRight))}
@@ -153,6 +193,7 @@ class SynthPage:
                                   255, 2)
             else:
                 break
+                
         if save_img:
             save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '_ann.jpg'
             cv2.imwrite(os.path.join(self._img_path, save_name), img)

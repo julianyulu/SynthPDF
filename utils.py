@@ -12,6 +12,10 @@ def load_yaml(yaml_file):
         data = yaml.safe_load(fid)
     return data
 
+def normalize_probabilty(prob_list):
+    tot = sum(prob_list)
+    probs = [x / tot for x in prob_list]
+    return probs 
 
 def random_integer_from_list(inlist, seed = None, empty_default = None):
     if seed is None:

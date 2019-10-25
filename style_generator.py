@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from utils import load_yaml
+from utils import load_yaml, random_integer_from_list
 
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import TableStyle
@@ -117,7 +117,7 @@ class ParagraphStyleGenerator:
                                spaceAfter = self._gen_space_after(), 
                                name = 'custom',
                                leading = self._gen_leading(),
-                               firstLineIndent = 24,
+                               firstLineIndent = self._gen_firstline_indent(),
                                alignment = self._gen_align())
         return style
     
@@ -144,6 +144,10 @@ class ParagraphStyleGenerator:
         else:
             color = np.random.choice(font_color)
         return color
+
+    def _gen_firstline_indent(self):
+        indent = self.config['firstline_indent']
+        return random_integer_from_list(indent)
     
     def _gen_leading(self):
         """

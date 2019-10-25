@@ -7,9 +7,9 @@ from tqdm import tqdm
 from multiprocessing import Pool
 import matplotlib.pyplot as plt 
 
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape 
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
-from utils import pdf2img, load_yaml, random_integer_from_list, prob2category
+from utils import pdf2img, load_yaml, random_integer_from_list, prob2category, normalize_probabilty
 from style_generator import TableStyleGenerator, ParagraphStyleGenerator
 
 from reportlab.lib.styles import getSampleStyleSheet
@@ -21,10 +21,14 @@ class myTemplate(SimpleDocTemplate):
         self.config = config
         self.coords = []
 
+    # def beforeFlowable(self, flowable):
+    #     self.canv.rotate(90)
+    #     print(self.frame)
+    
     def afterFlowable(self, flowable):
         x_lowerLeft, y_lowerLeft = self.frame._x, self.frame._y
         x_upperRight, y_upperRight = self.frame._x2, self.frame._y2
-        page_number = self.canv._pageNumber  # start from 1 
+        page_number = self.canv._pageNumber  # start from 1
         #print(type(flowable))
         #print(self.canv._pageNumber)
         #print(flowable.__dict__)
@@ -64,29 +68,45 @@ class myTemplate(SimpleDocTemplate):
         ## only table has attribute '_linecmds' == [.....]
         ## Bordered table is a none empty list, while borderless table is [] 
         if hasattr(flowable, '_linecmds') and flowable._linecmds and np.random.random() < self.config['stamp']['prob']:
-            x_shift = random_integer_from_list(self.config['stamp']['corner_dx'])
-            y_shift = random_integer_from_list(self.config['stamp']['corner_dy'])
-            # choose one of the 4 corners and add shift
-            stamp_width = random_integer_from_list(self.config['stamp']['width'])
-            x_stamp = int(np.random.choice([x_lowerLeft, x_lowerLeft + width]) - stamp_width / 2 + x_shift)
-            y_stamp = int(np.random.choice([y_lowerLeft, y_lowerLeft + height]) - stamp_width / 2 + y_shift)
+            n_stamps = random_integer_from_list(self.config['stamp']['n_stamps'])
+            for _ in range(n_stamps): 
+                info = self._add_stamps(x_lowerLeft, y_lowerLeft, width, height)
+                info['page'] = page_number
+                self.coords.append(info)
             
-            stamp_path = self.config['stamp']['stamp_img_path']
-            stamp_file = np.random.choice(os.listdir(stamp_path))
+        
+    def _add_stamps(self, x, y, w, h):
+        """
+        x, y: coords of the table lower left corner, origins from lower left of the page
+        """
+        cfg_stamp = self.config['stamp']
+        x_shift = random_integer_from_list(cfg_stamp['corner_dx'])
+        y_shift = random_integer_from_list(cfg_stamp['corner_dy'])
+        stamp_path = cfg_stamp['stamp_img_path']
+        stamp_width = random_integer_from_list(cfg_stamp['width'])
+        stamp_file = np.random.choice(os.listdir(stamp_path))
+        
+        # choose one of the 4 corners and add shift
+        if np.random.random() < 0.5: # stamp along top/bottom of table
+            # Fix y in narrow range while having x range 
+            y_stamp = int(np.random.choice([int(y), int(y + h + 1)]) - stamp_width // 2 + y_shift)
+            x_stamp = np.random.randint(int(x), int(x + w)) - stamp_width //2  + x_shift
+        else: #stamp along left / right of table 
+            x_stamp = np.random.choice([int(x), int(x + w)]) - stamp_width // 2 + x_shift
+            y_stamp = np.random.randint(int(y), int(y + h + 1)) - stamp_width //2  + y_shift 
             
-            img_width, img_height = self.canv.drawImage(os.path.join(stamp_path, stamp_file),
-                                                        x_stamp, y_stamp, mask = 'auto',
-                                                        anchor = 'c', # anchored at center 
-                                                        width = stamp_width, height = stamp_width)
+        img_width, img_height = self.canv.drawImage(os.path.join(stamp_path, stamp_file),
+                                                    x_stamp, y_stamp, mask = 'auto',
+                                                    anchor = 'c', # anchored at center 
+                                                    width = stamp_width, height = stamp_width)
                 
-            self.coords.append({'kind': 'stamp',
-                                'is_flowable': False,
-                                'page': page_number, 
-                                'x': x_stamp,
-                                'y': y_stamp,
-                                'w': stamp_width,
-                                'h': stamp_width})
-                
+        return {'kind': 'stamp',
+                'is_flowable': False,#'page': page_number, 
+                'x': x_stamp,
+                'y': y_stamp,
+                'w': stamp_width,
+                'h': stamp_width}
+    
 class SynthPage:
     def __init__(self, config, filename = 'test.pdf'):
         self.filename = filename
@@ -94,10 +114,9 @@ class SynthPage:
         self._initialize()
         self.doc = myTemplate(self._pdf_file,
                               config['notFlowables'],
-                              pagesize = A4, bottomup = 1,
-                              showBoundary = 0, leftMargin = 72)
+                              pagesize = self._random_page_size(), bottomup = 1,
+                              showBoundary = 0)
         
-
     def _initialize(self):
         output_path = self.config['io']['output_path']
         if not os.path.exists(output_path): os.mkdir(output_path)
@@ -113,10 +132,23 @@ class SynthPage:
 
         json_path = os.path.join(output_path, self.config['io']['json_path'])
         if not os.path.exists(json_path): os.mkdir(json_path)
+        
         self._json_path = json_path
-
         self._pdf_file = os.path.join(pdf_path, self.filename)
-                                
+
+    def _random_page_size(self):
+        cfg_page = self.config['page']
+
+        prob_portrait = cfg_page['prob_portrait']
+        prob_landscape = cfg_page['prob_landscape']
+
+        prob_portrait, prob_landscape = normalize_probabilty([prob_portrait,prob_landscape])
+        rand = np.random.random()
+        if rand < prob_portrait:
+            return A4
+        else:
+            return landscape(A4)
+        
     @property
     def elements(self):
         if not hasattr(self, '_elements'):
@@ -142,6 +174,10 @@ class SynthPage:
     def add_title(self):
         title = SynthTitle(self.config['title']).title
         self.elements.append(title)
+
+    def add_list(self):
+        bullet_list = SynthList(self.config['list']).bullet_list
+        self.elements.append(bullet_list)
         
     def as_pdf(self):
         self.doc.build(self.elements)
@@ -238,8 +274,9 @@ class SynthParagraph:
             text += w
             text += np.random.choice(seperator)
         paragraph_style = ParagraphStyleGenerator(self.config).style()
+        
         return Paragraph(text, paragraph_style)
-    
+
 
     @property
     def cnChar(self):
@@ -269,7 +306,31 @@ class SynthTitle(SynthParagraph):
         text = '<br />\n'.join(all_words)
         title_style = ParagraphStyleGenerator(self.config).style()
         return Paragraph(text, title_style)    
+
+
+class SynthList(SynthParagraph):
+    def __init__(self, config):
+        super().__init__(config)
     
+    @property
+    def paragraph(self):
+        pass
+
+    @property
+    def bullet_list(self):
+        lb_sentence, ub_sentence = self.config['sentence_length']
+        n_bullet = random_integer_from_list(self.config['n_bullet'])
+        seperator = [',', '.', '!']
+        items = []
+        for i in range(n_bullet):
+            n_sentenses = random_integer_from_list(self.config['n_sentences'])
+            all_words = [self._gen_random_sentence([lb_sentence, ub_sentence]) for _ in range(n_sentenses)]+ ['']
+            item = '&bull' + np.random.choice(seperator).join(all_words)
+            items.append(item)
+        text = '<br />\n'.join(items)
+        title_style = ParagraphStyleGenerator(self.config).style()
+        return Paragraph(text, title_style)    
+
 class SynthTable:
     fileColName = 'data/colName'
     fileColValue = 'data/colValue'
@@ -360,7 +421,12 @@ class SynthTable:
         table_data = [] 
         for i in range(self.nrows):
             if i == 0:
-                table_data.append(col_header[:self._ncols])
+                # make the 1st cell empty 
+                prob_empty_first_cell = cfg_blocks['prob_empty_first_cell']
+                if np.random.random() < prob_empty_first_cell:
+                    table_data.append([''] + col_header[1:self._ncols])
+                else:
+                    table_data.append(col_header[:self._ncols])
             else:
                 table_data.append([row_header.pop()] + content[content_ptr: content_ptr + self._ncols -1])
                 content_ptr += self._ncols  - 1
@@ -384,6 +450,8 @@ class SynthTable:
                       style = table_style,
                       spaceBefore = space_before,
                       spaceAfter = space_after)
+
+        #print(table.__dict__)
         return table
     
     def _gen_random_cn_sentence(self, length = [2, 6]):
@@ -490,8 +558,8 @@ class PageMixer:
         sum_prob = sum(prob_book.values())
         acc_prob = 0
         for key in prob_book:
-            prob_book[key] = [acc_prob, prob_book[key] / sum_prob]
-            acc_prob += prob_book[key][1]
+            prob_book[key] = [acc_prob, acc_prob + prob_book[key] / sum_prob]
+            acc_prob = prob_book[key][1]
         return prob_book
 
     def make(self):
@@ -500,7 +568,7 @@ class PageMixer:
         lb_tables = self.config['mixer']['min_tables_per_page']
         ub_tables = self.config['mixer']['max_tables_per_page']
         n_tables = np.random.randint(lb_tables, ub_tables + 1)
-
+        #print(n_tables)
         # fist gen random number table elements 
         select_elements = ['add_table'] * n_tables
         n_elements = len(select_elements)        
@@ -510,6 +578,7 @@ class PageMixer:
             n_elements += 1
         np.random.shuffle(select_elements)
 
+        #print(select_elements)
         # then double check if avoid neighbor tables
         if self.config['mixer']['avoid_neighbor_tables']:
             prev = ''
@@ -517,6 +586,7 @@ class PageMixer:
                 if '_table' in select_elements[i] and '_table' in prev:
                     select_elements[i] = 'add_paragraph'
                 prev = select_elements[i]
+
         # add elements to page from select_elements 
         for op in select_elements:
             self.page.__getattribute__(op)()
@@ -567,17 +637,19 @@ config =  load_yaml('config.yaml')
 #print(tb.nrows, tb.ncols)
 #print(tb.table)
 
-## Test Paragraph
-# pa = SynthParagraph()
-# printa.paragraph)
+# #Test Paragraph
+# pa = SynthParagraph(config['paragraph'])
+# print(pa.paragraph)
 
 # ##Test SynthPage
 # sp = SynthPage(config)
 # sp.add_paragraph()
-# sp.add_table()
+# sp.add_spacer()
+# sp.add_list()
+# #sp.add_table()
 # sp.add_paragraph()
-# sp.add_table()
-# sp.add_title()
+# #sp.add_table()
+# #sp.add_title()
 # sp.as_pdf()
 # sp.as_img()
 # sp.annotate(save_img = True)

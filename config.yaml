@@ -2,23 +2,25 @@ app_name: SynthPDF
 author: Julian Lu
 email: julianlu@wezhuiyi.com
 
-runner:
-  n_files: 50
-  run_parallel: true
-  num_processors: 8
-
 io:
   output_path: 'outputs'
   pdf_path: 'pdfs'
   img_path: 'imgs'
   json_path: 'jsons'
 
+runner:
+  n_files: 50
+  run_parallel: true
+  num_processors: 8
+
 mixer:
   prob_title: 0.1
-  prob_paragraph: 0.8
+  prob_paragraph: 0.6
   prob_spacer: 0.1
+  prob_list: 0.2
+  
   min_tables_per_page: 0
-  max_tables_per_page: 4
+  max_tables_per_page: 1
   avoid_neighbor_tables: true
   max_elements_per_page: 6
   as_img: true
@@ -27,6 +29,11 @@ mixer:
   save_annotate_imgs: true
   show_annotate_imgs: false
   save_single_annotate_json: true
+
+
+page:
+  prob_portrait: 0.7
+  prob_landscape: 0.3 
 
 
 table:
@@ -39,8 +46,7 @@ table:
     font_size: [6,13]
     text_color: ['black']  # font name or RGB 
     vertical_align: [] # Opt: ['TOP', 'MIDDLE', 'BOTTOM'] if empty, apply randomly
-    horizontal_align: ['CENTER'] # Opt: ['LEFT', 'RIGHT', 'CENTER', 'DECIMAL'] if empty, 
-    
+    horizontal_align: ['CENTER'] # Opt: ['LEFT', 'RIGHT', 'CENTER', 'DECIMAL'] if empty,     
   line:
     grid_prob: 0.5 # The probability of having grid linesx
     grid_color: ['black'] # ['red', 'green', 'grey', 'black', 'pink', 'lavender', 'orange', 'blue', 'yellow']
@@ -53,11 +59,12 @@ table:
     
   content:
     blocks: # prob of having cn/en/num in tabe hearders
+      prob_empty_first_cell: 0.6
       col_header: # need to sum to 1
         prob_number: 0.1
         prob_cn_char: 0.8
         prob_en_char: 0.1
-        wrap: 0.25
+        wrap: 0.5
       row_header: # need to sum to 1 
         prob_number: 0.1
         prob_cn_char: 0.8
@@ -86,7 +93,7 @@ paragraph:
   long:
     prob: 0.5
     n_sentences: [1, 30]
-    sentence_length: [2, 60]
+    sentence_length: [2, 20]
   short:
     prob: 0.5
     n_sentences: [1, 3]
@@ -97,7 +104,8 @@ paragraph:
   align: [] # Opts: justify, center, left, right
   space_before: [3, 15] # space above the paragrah block
   space_after: [3, 15] # space below the paragrah block
-
+  firstline_indent: [0, 12, 24, 32]
+  
 title:
   n_lines: [1, 3]
   font_size: [15, 22]
@@ -108,15 +116,30 @@ title:
   align: ['center']
   space_before: [5, 10]
   space_after: [5, 10]
-
+  firstline_indent: [0]
+  
+list:
+  n_bullet: [3, 6]
+  n_sentences: [1, 3]
+  sentence_length: [2, 5]
+  firstline_indent: [0]
+  
+  leading: [0.8, 2.0]
+  text_color: ['black']
+  align: ['left']
+  font_size: [10, 15]
+  space_before: [2, 10]
+  space_after: [2, 10]
+  
 spacer:
   height: [1, 3]
 
 
 notFlowables:
   stamp: # currently only add to bordered table corners
-    prob: 0.3
-    stamp_img_path: img_data/stamps
-    corner_dx: [-20, 20]
-    corner_dy: [-20, 20]
+    prob: 1
+    n_stamps: [1, 4]
+    corner_dx: [-30, 30]
+    corner_dy: [-30, 30]
     width: [30, 70]
+    stamp_img_path: img_data/stamps

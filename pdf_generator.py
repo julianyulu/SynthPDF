@@ -196,8 +196,8 @@ class SynthPage:
         coords: (x, y) 
         """
         x, y = coord
-        W_A4, H_A4 = A4
-        factor = H / H_A4 
+        W_page, H_page = self.doc.pagesize
+        factor = H / H_page 
         return (int(x * factor), int(H - y * factor))
 
     
@@ -256,8 +256,8 @@ class SynthParagraph:
         
     @property
     def paragraph(self):
-        #seperator = [', ', '，', ': ', '： ', '. ', '。', '! ', '！ ', '? ', '？ ']
-        seperator = [',', '.', '!']
+        seperator = [',', '，', ':', '：', '.', '。', '!', '！', '?', '？', ' ']
+        #seperator = [',', '.', '!']
         cfg_para_long = self.config['long']
         cfg_para_short = self.config['short']
         prob_long = cfg_para_long['prob']
@@ -568,7 +568,7 @@ class PageMixer:
         lb_tables = self.config['mixer']['min_tables_per_page']
         ub_tables = self.config['mixer']['max_tables_per_page']
         n_tables = np.random.randint(lb_tables, ub_tables + 1)
-        #print(n_tables)
+        
         # fist gen random number table elements 
         select_elements = ['add_table'] * n_tables
         n_elements = len(select_elements)        
@@ -578,15 +578,14 @@ class PageMixer:
             n_elements += 1
         np.random.shuffle(select_elements)
 
-        #print(select_elements)
-        # then double check if avoid neighbor tables
+        # then double check if avoid neighbor table
         if self.config['mixer']['avoid_neighbor_tables']:
             prev = ''
             for i in range(len(select_elements)):
                 if '_table' in select_elements[i] and '_table' in prev:
                     select_elements[i] = 'add_paragraph'
                 prev = select_elements[i]
-
+                
         # add elements to page from select_elements 
         for op in select_elements:
             self.page.__getattribute__(op)()
@@ -630,7 +629,7 @@ if __name__ == '__main__':
     
 # ======================= test run ============================
 
-config =  load_yaml('config.yaml')
+#config =  load_yaml('config.yaml')
 
 #Test Table 
 #tb = SynthTable(config['table'])
@@ -654,7 +653,7 @@ config =  load_yaml('config.yaml')
 # sp.as_img()
 # sp.annotate(save_img = True)
 
-#Test Mixer 
-m = PageMixer(config)
-m.make()
-print(m.page.doc.coords)
+# #Test Mixer 
+# m = PageMixer(config)
+# m.make()
+# #print(m.page.doc.coords)

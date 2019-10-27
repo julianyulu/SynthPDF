@@ -590,6 +590,11 @@ class PageMixer:
         for op in select_elements:
             self.page.__getattribute__(op)()
 
+        if self.config['mixer']['ensure_tabel_exist']:
+            page1tables = [x for x in self.page.doc.coords if x['page'] == 1 and x['kind'] == 'table']
+            if len(page1tables) == 0:
+                return
+        
         # finally output result file 
         if self.config['mixer']['as_pdf']:
             self.page.as_pdf()

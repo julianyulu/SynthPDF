@@ -9,16 +9,16 @@ io:
   json_path: 'jsons'
 
 runner:
-  n_files: 50
+  n_files: 50000
   run_parallel: true
-  num_processors: 8
+  num_processors: 46
 
 mixer:
   prob_title: 0.1
   prob_paragraph: 0.6
   prob_spacer: 0.1
   prob_list: 0.2  
-  min_tables_per_page: 0
+  min_tables_per_page: 1
   max_tables_per_page: 3
   max_elements_per_page: 10
   avoid_neighbor_tables: true
@@ -28,11 +28,11 @@ mixer:
   save_annotate_imgs: true
   show_annotate_imgs: false
   save_single_annotate_json: true
-
+  ensure_tabel_exist: true
 
 page:
-  prob_portrait: 0.3
-  prob_landscape: 0.7
+  prob_portrait: 0.7
+  prob_landscape: 0.3
 
 
 table:

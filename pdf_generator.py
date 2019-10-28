@@ -101,7 +101,7 @@ class myTemplate(SimpleDocTemplate):
                                                     width = stamp_width, height = stamp_width)
                 
         return {'kind': 'stamp',
-                'is_flowable': False,#'page': page_number, 
+                'is_flowable': False, # page number added by the caller func
                 'x': x_stamp,
                 'y': y_stamp,
                 'w': stamp_width,
@@ -175,6 +175,10 @@ class SynthPage:
         title = SynthTitle(self.config['title']).title
         self.elements.append(title)
 
+    def add_subtitle(self):
+        subtitle = SynthSubTitle(self.config['subtitle']).subtitle
+        self.elements.append(subtitle)
+
     def add_list(self):
         bullet_list = SynthList(self.config['list']).bullet_list
         self.elements.append(bullet_list)
@@ -219,16 +223,16 @@ class SynthPage:
             x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
 
             if elem['page'] == 1:
-                #prev_ycoords = y_upperLeft
                 labels[idx] = {'kind': elem['kind'],
                                'p1': (int(x_upperLeft), int(y_upperLeft)),
                                'p2': (int(x_lowerRight), int(y_lowerRight))}
                 idx += 1 
                 if show_img or save_img:
-                    cv2.rectangle(img,
-                                  (x_upperLeft, y_upperLeft),
-                                  (x_lowerRight, y_lowerRight),
-                                  255, 2)
+                    if elem['kind'] == 'table' or elem['kind'] == 'stamp':
+                        cv2.rectangle(img,
+                                      (x_upperLeft, y_upperLeft),
+                                      (x_lowerRight, y_lowerRight),
+                                      255, 2)
             else:
                 break
                 
@@ -308,6 +312,25 @@ class SynthTitle(SynthParagraph):
         return Paragraph(text, title_style)    
 
 
+class SynthSubTitle(SynthParagraph):
+    def __init__(self, config):
+        super().__init__(config)
+    
+    @property
+    def paragraph(self):
+        pass
+
+    @property
+    def subtitle(self):
+        cn_leading = list('一二三四五六七八九十')
+        lb_sentence, ub_sentence = self.config['sentence_length']
+        word = self._gen_random_sentence([lb_sentence, ub_sentence]) 
+        text = '、'.join([np.random.choice(cn_leading), word])
+        subtitle_style = ParagraphStyleGenerator(self.config).style()
+        subtitle_style.alignment = 0
+        return Paragraph(text, subtitle_style)    
+
+
 class SynthList(SynthParagraph):
     def __init__(self, config):
         super().__init__(config)
@@ -336,7 +359,7 @@ class SynthTable:
     fileColValue = 'data/colValue'
     fileColItem = 'data/colItem'
     CN_CHAR_FILE = 'char_data/JianTi3500.txt'
-    cn_char_cache = []
+    _cn_char_cache = []
     
     def __init__(self, config):
         self.config = config 
@@ -361,7 +384,7 @@ class SynthTable:
             
     @property
     def cnChar(self):
-        if not hasattr(self, '_cn_char_cache'):
+        if not self._cn_char_cache:
             with open(self.CN_CHAR_FILE, 'r') as fid:
                 content = fid.readlines()
             self._cn_char_cache = [x.strip() for x in content]
@@ -406,7 +429,6 @@ class SynthTable:
 
         
         # Then add special docorations
-        #prob_underline = cfg_special['prob_underline']
         prob_parentheses = cfg_special['prob_parentheses']
         prob_empty = cfg_special['prob_empty']
         prob_dash = cfg_special['prob_dash']
@@ -439,11 +461,20 @@ class SynthTable:
             for i in range(len(table_data)):
                 table_data[i][empty_col] = ' ' * empty_size
 
-        # Then add single random empty row only to borderless table 
+        # Then add single random empty row 
         if np.random.random() < self.config['space']['prob_empty_row'] and 4<= self._nrows:
             empty_row = np.random.randint(1, self._nrows -1) 
             table_data[empty_row] =  [] *self._ncols
 
+        # Then set second row (count start from 1) to be empty: simulate space / gap
+        if np.random.random() < self.config['space']['prob_empty_second_row'] and self._nrows>3 and self._ncols > 2:
+            table_data[1] = [] * self._ncols
+
+        # Then set last second row (count start from 1) to be empty: simulate space / gap
+        if np.random.random() < self.config['space']['prob_empty_last_second_row'] and self._nrows > 3 and self._ncols > 2: 
+            table_data[-2] = [] * self._ncols
+
+        
         # Finally build the table instance
         space_before, space_after = self._gen_table_space()
         table = Table(table_data,
@@ -456,6 +487,8 @@ class SynthTable:
     
     def _gen_random_cn_sentence(self, length = [2, 6]):
         word_len = random_integer_from_list(length)
+        #print('****************', word_len)
+        #print('****************', self.cn_char)
         sentence = ''.join(np.random.choice(self.cnChar, size = word_len, replace = True).tolist())
         return sentence
 
@@ -487,6 +520,11 @@ class SynthTable:
         part_number = self._gen_random_decimal(n_integers, n_digits)
         return ''.join([part_number, '%'])
 
+    def _gen_random_cn_punctuation(self, length = [3, 8]):
+        cn_leading = list('一二三四五六七八九十')
+        sentence = self._gen_random_cn_sentence(length)
+        return '、'.join([np.random.choice(cn_leading), sentence])
+                                   
     def _decorate_underline(self, source_list, prob, table_style):
         """
         To add underline, the cell content has to be wrapped by Paragraph obj 
@@ -515,7 +553,8 @@ class SynthTable:
     
     def _gen_cell_content(self, sub_block_config, N):
         prob2item = prob2category(sub_block_config)
-        result = [] 
+        result = []
+        is_punct = False
         for _ in range(N):
             rand = np.random.random()
             category = prob2item(rand)
@@ -529,6 +568,9 @@ class SynthTable:
             elif '_percent' in category:
                 res = self._gen_random_percents(self.config['content']['numbers']['n_integers'],
                                                 self.config['content']['numbers']['n_digits'])
+            elif 'punctuation' in category:
+                res = self._gen_random_cn_punctuation(self.config['content']['cn_chars']['word_length'])
+                is_punct = True
             else:
                 raise ValueError("category not recognized: %s"%category)
 
@@ -538,6 +580,9 @@ class SynthTable:
                     mid = len(res) // 2 
                     res = '\n'.join([res[:mid], res[mid:]])
             result.append(res)
+
+        if is_punct:
+            result = [x if '、' in x else '  ' + x for x in result]
         return result
 
     def _gen_table_space(self):
@@ -589,11 +634,6 @@ class PageMixer:
         # add elements to page from select_elements 
         for op in select_elements:
             self.page.__getattribute__(op)()
-
-        # if self.config['mixer']['ensure_tabel_exist']:
-        #     page1tables = [x for x in self.page.doc.coords if x['page'] == 1 and x['kind'] == 'table']
-        #     if len(page1tables) == 0:
-        #         return
         
         # finally output result file 
         if self.config['mixer']['as_pdf']:
@@ -610,7 +650,7 @@ class PageMixer:
     
 
 
-if __name__ == '__main__ddd':
+if __name__ == '__main__':
     config =  load_yaml('config.yaml')
     cfg_runner = config['runner']
 
@@ -634,7 +674,7 @@ if __name__ == '__main__ddd':
     
 # ======================= test run ============================
 
-config =  load_yaml('config.yaml')
+#config =  load_yaml('config.yaml')
 
 #Test Table 
 #tb = SynthTable(config['table'])
@@ -658,7 +698,7 @@ config =  load_yaml('config.yaml')
 # sp.as_img()
 # sp.annotate(save_img = True)
 
-#Test Mixer 
-m = PageMixer(config)
-m.make()
-#print(m.page.doc.coords)
+# #Test Mixer 
+# m = PageMixer(config)
+# m.make()
+# #print(m.page.doc.coords)

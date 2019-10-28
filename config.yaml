@@ -9,15 +9,16 @@ io:
   json_path: 'jsons'
 
 runner:
-  n_files: 50
+  n_files: 40
   run_parallel: true
-  num_processors: 46
+  num_processors: 4
 
 mixer:
   prob_title: 0.1
+  prob_subtitle: 0.15
   prob_paragraph: 0.6
-  prob_spacer: 0.1
-  prob_list: 0.2  
+  prob_spacer: 0.05
+  prob_list: 0.1
   min_tables_per_page: 1
   max_tables_per_page: 3
   max_elements_per_page: 10
@@ -28,7 +29,6 @@ mixer:
   save_annotate_imgs: true
   show_annotate_imgs: false
   save_single_annotate_json: true
-  ensure_tabel_exist: true
 
 page:
   prob_portrait: 0.7
@@ -52,9 +52,11 @@ table:
     grid_line_width: [1, 2]
 
   space:
-    prob_empty_col: 0.5
+    prob_empty_col: 0.4
     size_empty_col: [20, 40]
-    prob_empty_row: 0.3
+    prob_empty_row: 0.2
+    prob_empty_second_row: 0.4
+    prob_empty_last_second_row: 0.3
     
   content:
     blocks: # prob of having cn/en/num in tabe hearders
@@ -63,12 +65,13 @@ table:
         prob_number: 0.1
         prob_cn_char: 0.8
         prob_en_char: 0.1
-        wrap: 0.5
+        wrap: 0.4
       row_header: # need to sum to 1 
         prob_number: 0.1
-        prob_cn_char: 0.8
+        prob_cn_char: 0.6
         prob_en_char: 0.1
-        wrap: 0.25
+        prob_punctuation: 0.2
+        wrap: 0.3
       content: # prob of having cn/en/num in tabel contents
         prob_number: 0.6 # need to sum to 1 
         prob_cn_char: 0.1
@@ -84,7 +87,7 @@ table:
       word_length: [1, 8]
     special: # special char details [no need to sum to 1]
       prob_parentheses: 0.3
-      prob_empty: 0.1
+      prob_empty: 0.15
       prob_dash: 0.15
       prob_underline: 0.3 # currently not supported for table 
 
@@ -112,6 +115,17 @@ title:
   text_color: ['black']
   sentence_length: [2, 10]
   n_sentences: [1,2]
+  align: ['center']
+  space_before: [5, 10]
+  space_after: [5, 10]
+  firstline_indent: [0]
+
+subtitle:
+  font_size: [15, 22]
+  leading: [1, 1.5]
+  text_color: ['black']
+  sentence_length: [4, 8]
+  n_sentences: [1]
   align: ['center']
   space_before: [5, 10]
   space_after: [5, 10]

@@ -590,10 +590,10 @@ class PageMixer:
         for op in select_elements:
             self.page.__getattribute__(op)()
 
-        if self.config['mixer']['ensure_tabel_exist']:
-            page1tables = [x for x in self.page.doc.coords if x['page'] == 1 and x['kind'] == 'table']
-            if len(page1tables) == 0:
-                return
+        # if self.config['mixer']['ensure_tabel_exist']:
+        #     page1tables = [x for x in self.page.doc.coords if x['page'] == 1 and x['kind'] == 'table']
+        #     if len(page1tables) == 0:
+        #         return
         
         # finally output result file 
         if self.config['mixer']['as_pdf']:
@@ -610,7 +610,7 @@ class PageMixer:
     
 
 
-if __name__ == '__main__':
+if __name__ == '__main__ddd':
     config =  load_yaml('config.yaml')
     cfg_runner = config['runner']
 
@@ -634,7 +634,7 @@ if __name__ == '__main__':
     
 # ======================= test run ============================
 
-#config =  load_yaml('config.yaml')
+config =  load_yaml('config.yaml')
 
 #Test Table 
 #tb = SynthTable(config['table'])
@@ -658,7 +658,7 @@ if __name__ == '__main__':
 # sp.as_img()
 # sp.annotate(save_img = True)
 
-# #Test Mixer 
-# m = PageMixer(config)
-# m.make()
-# #print(m.page.doc.coords)
+#Test Mixer 
+m = PageMixer(config)
+m.make()
+#print(m.page.doc.coords)

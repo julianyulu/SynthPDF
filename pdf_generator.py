@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 from multiprocessing import Pool
 import matplotlib.pyplot as plt 
+from PIL import Image
 
 from reportlab.lib.pagesizes import A4, landscape 
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
@@ -67,45 +68,93 @@ class myTemplate(SimpleDocTemplate):
         ## stamp at bordered table corners
         ## only table has attribute '_linecmds' == [.....]
         ## Bordered table is a none empty list, while borderless table is [] 
-        if hasattr(flowable, '_linecmds') and flowable._linecmds and np.random.random() < self.config['stamp']['prob']:
-            n_stamps = random_integer_from_list(self.config['stamp']['n_stamps'])
-            for _ in range(n_stamps): 
-                info = self._add_stamps(x_lowerLeft, y_lowerLeft, width, height)
-                info['page'] = page_number
-                self.coords.append(info)
-            
-        
-    def _add_stamps(self, x, y, w, h):
+        if hasattr(flowable, '_linecmds') and flowable._linecmds:
+            cache_coords = []
+            if np.random.random() < self.config['stamp']['prob']:            
+                n_stamps = random_integer_from_list(self.config['stamp']['n'])
+                # Add  n_stamps 
+                for _ in range(n_stamps):
+                    info = self._add_imgs('stamp', x_lowerLeft, y_lowerLeft,
+                                          width, height, cache_coords)
+                    info['page'] = page_number
+                    self.coords.append(info)
+
+            if np.random.random() < self.config['signature']['prob']:            
+                n_signatures = random_integer_from_list(self.config['signature']['n'])
+                # Add  n_signatures 
+                for _ in range(n_signatures):
+                    info = self._add_imgs('signature', x_lowerLeft, y_lowerLeft,
+                                          width, height, cache_coords)
+                    info['page'] = page_number
+                    self.coords.append(info)
+
+
+    def _is_overlap(self, new_stamp, cached_coords):
+        """Check if new stamp overlaps with existing stamp coords 
+        """
+        x1, y1 = new_stamp[0]
+        x2, y2 = new_stamp[1]
+        for old_stamp in cached_coords:
+            xmin, ymin = old_stamp[0]
+            xmax, ymax = old_stamp[1]
+            if (xmin < x1 < xmax or xmin < x2 < xmax) and (ymin < y1 < ymax or ymin < y2 < ymax):
+                return True 
+        return False
+
+    def _add_imgs(self, kind, x, y, w, h, exist_coords):
         """
         x, y: coords of the table lower left corner, origins from lower left of the page
+        Avoid stamp overlap 
         """
-        cfg_stamp = self.config['stamp']
-        x_shift = random_integer_from_list(cfg_stamp['corner_dx'])
-        y_shift = random_integer_from_list(cfg_stamp['corner_dy'])
-        stamp_path = cfg_stamp['stamp_img_path']
-        stamp_width = random_integer_from_list(cfg_stamp['width'])
-        stamp_file = np.random.choice(os.listdir(stamp_path))
+        cfg_object = self.config[kind]
+        x_shift = random_integer_from_list(cfg_object['corner_dx'])
+        y_shift = random_integer_from_list(cfg_object['corner_dy'])
+        image_path = cfg_object['img_path']
+        image_width = random_integer_from_list(cfg_object['width'])
+        image_file = np.random.choice(os.listdir(image_path))
+
+        # get original image size of image 
+        image_img = Image.open(os.path.join(image_path, image_file))
+        w_image, h_image = image_img.size
+
+        # rescale to setted width (keepAspect = True in draw)
+        h_image = image_width / w_image  * h_image 
+        w_image = image_width
         
-        # choose one of the 4 corners and add shift
-        if np.random.random() < 0.5: # stamp along top/bottom of table
-            # Fix y in narrow range while having x range 
-            y_stamp = int(np.random.choice([int(y), int(y + h + 1)]) - stamp_width // 2 + y_shift)
-            x_stamp = np.random.randint(int(x), int(x + w)) - stamp_width //2  + x_shift
-        else: #stamp along left / right of table 
-            x_stamp = np.random.choice([int(x), int(x + w)]) - stamp_width // 2 + x_shift
-            y_stamp = np.random.randint(int(y), int(y + h + 1)) - stamp_width //2  + y_shift 
-            
-        img_width, img_height = self.canv.drawImage(os.path.join(stamp_path, stamp_file),
-                                                    x_stamp, y_stamp, mask = 'auto',
-                                                    anchor = 'c', # anchored at center 
-                                                    width = stamp_width, height = stamp_width)
+        max_iter = 50
+        n_iter = 0
+        while n_iter < max_iter:
+            # choose one of the 4 corners and add shift
+            if np.random.random() < 0.5: # image along top/bottom of table
+                # Fix y in narrow range while having x range 
+                y_image = int(np.random.choice([int(y), int(y + h + 1)]) - image_width // 2 + y_shift)
+                x_image = np.random.randint(int(x), int(x + w)) - image_width //2  + x_shift
+            else: #image along left / right of table 
+                x_image = np.random.choice([int(x), int(x + w)]) - image_width // 2 + x_shift
+                y_image = np.random.randint(int(y), int(y + h + 1)) - image_width //2  + y_shift
                 
-        return {'kind': 'stamp',
+            image_coord = ((x_image, y_image),
+                            (x_image + w_image, y_image + h_image))
+            
+            if self._is_overlap(image_coord, exist_coords):
+                n_iter += 1
+                continue
+            else:
+                exist_coords.append(image_coord)
+                break
+            
+        img_width, img_height = self.canv.drawImage(os.path.join(image_path, image_file),
+                                                    x_image, y_image, mask = 'auto',
+                                                    anchor = 'sw', # anchored at center 
+                                                    width = image_width,
+                                                    preserveAspectRatio = True) 
+                
+        return {'kind': kind,
                 'is_flowable': False, # page number added by the caller func
-                'x': x_stamp,
-                'y': y_stamp,
-                'w': stamp_width,
-                'h': stamp_width}
+                'x': x_image,
+                'y': y_image,
+                'w': image_width,
+                'h': int(img_height * image_width / img_width)}
     
 class SynthPage:
     def __init__(self, config, filename = 'test.pdf'):
@@ -228,7 +277,7 @@ class SynthPage:
                                'p2': (int(x_lowerRight), int(y_lowerRight))}
                 idx += 1 
                 if show_img or save_img:
-                    if elem['kind'] == 'table' or elem['kind'] == 'stamp':
+                    if elem['kind'] in ['table', 'stamp', 'signature']:
                         cv2.rectangle(img,
                                       (x_upperLeft, y_upperLeft),
                                       (x_lowerRight, y_lowerRight),
@@ -674,7 +723,7 @@ if __name__ == '__main__':
     
 # ======================= test run ============================
 
-#config =  load_yaml('config.yaml')
+config =  load_yaml('config.yaml')
 
 #Test Table 
 #tb = SynthTable(config['table'])
@@ -698,7 +747,7 @@ if __name__ == '__main__':
 # sp.as_img()
 # sp.annotate(save_img = True)
 
-# #Test Mixer 
-# m = PageMixer(config)
-# m.make()
-# #print(m.page.doc.coords)
+#Test Mixer 
+m = PageMixer(config)
+m.make()
+#print(m.page.doc.coords)

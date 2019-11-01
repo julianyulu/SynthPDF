@@ -23,7 +23,8 @@ class TableStyleGenerator:
         return TableStyle(styles)
 
     ## ====================== CELL ==========================
-    def _gen_font(self):
+    @staticmethod
+    def _gen_font():
         font_file = np.random.choice(os.listdir(FONT_PATH))
         font_name = font_file.split('.ttf')[0] 
         pdfmetrics.registerFont(TTFont(font_name, font_file))
@@ -111,7 +112,8 @@ class ParagraphStyleGenerator:
                                alignment = self._gen_align())
         return style
     
-    def _gen_font(self):
+    @staticmethod 
+    def _gen_font():
         font_file = np.random.choice(os.listdir(FONT_PATH))
         font_name = font_file.split('.ttf')[0] 
         pdfmetrics.registerFont(TTFont(font_name, font_file))

@@ -17,26 +17,9 @@ runner:
   run_parallel: true
   num_processors: 4
 
-mixer:
-  prob_title: 0.1
-  prob_subtitle: 0.15
-  prob_paragraph: 0.6
-  prob_spacer: 0.05
-  prob_list: 0.1
-  min_tables_per_page: 1
-  max_tables_per_page: 3
-  max_elements_per_page: 8
-  avoid_neighbor_tables: true
-  as_img: true
-  as_pdf: true
-  annotate: true
-  save_annotate_imgs: true
-  show_annotate_imgs: false
-  save_single_annotate_json: true
-
 page:
-  prob_portrait: 0.7
-  prob_landscape: 0.3
+  prob_portrait: 1
+  prob_landscape: 0
   
   header:
     line:
@@ -44,11 +27,11 @@ page:
       top_margin: [30, 60]
       left_margin: [10, 40]
       right_margin: [10, 15]
-      linewidth: [1, 2]
+      linewidth: [1,2]
     text:
       locations: ['left', 'right', 'center']
       word_length: [2, 8]
-      font_size: [5, 12]
+      font_size: [5, 13]
      
       
   footer:
@@ -56,8 +39,8 @@ page:
     
 table:
   layout:
-    nrows: [2, 20]
-    ncols: [2, 6]
+    nrows: [25, 40]
+    ncols: [3, 5]
     space_before: [3, 12]
     space_after: [3, 12] # frame._prevASpace
   cell:
@@ -76,7 +59,7 @@ table:
     grid_line_width: [1, 2]
 
   space:
-    prob_empty_col: 0.4
+    prob_empty_col: 0.05
     size_empty_col: [20, 45]
     prob_empty_row: 0.2
     prob_empty_second_row: 0.4
@@ -106,7 +89,7 @@ table:
       n_integers: [1, 7]
       n_digits: [0, 4]
     cn_chars: # cn char details
-      word_length: [1, 10]
+      word_length: [1, 6]
     en_chars: # en char detils 
       word_length: [1, 8]
     special: # special char details [no need to sum to 1]
@@ -114,58 +97,8 @@ table:
       prob_empty: 0.15
       prob_dash: 0.15
       prob_underline: 0.3 # currently not supported for table 
-
-paragraph:
-  long:
-    prob: 0.6
-    n_sentences: [5, 20]
-    sentence_length: [2, 10]
-  short:
-    prob: 0.4
-    n_sentences: [1, 3]
-    sentence_length: [2, 5]
-  font_size: [8, 14]
-  leading: [0.8, 2.0]    # line gap 
-  text_color: ['black']  # font name or RGB
-  align: [] # Opts: justify, center, left, right
-  space_before: [3, 15] # space above the paragrah block
-  space_after: [3, 15] # space below the paragrah block
-  firstline_indent: [0, 12, 24, 32]
   
-title:
-  n_lines: [1, 3]
-  font_size: [15, 22]
-  leading: [1, 1.5]
-  text_color: ['black']
-  sentence_length: [2, 10]
-  n_sentences: [1,2]
-  align: ['center']
-  space_before: [5, 10]
-  space_after: [5, 10]
-  firstline_indent: [0]
-
-subtitle:
-  font_size: [15, 22]
-  leading: [1, 1.5]
-  text_color: ['black']
-  sentence_length: [4, 8]
-  n_sentences: [1]
-  align: ['center']
-  space_before: [5, 10]
-  space_after: [5, 10]
-  firstline_indent: [0]
   
-list:
-  n_bullet: [3, 6]
-  n_sentences: [1, 3]
-  sentence_length: [2, 5]
-  firstline_indent: [0]
-  leading: [0.8, 2.0]
-  text_color: ['black']
-  align: ['left']
-  font_size: [10, 15]
-  space_before: [2, 10]
-  space_after: [2, 10]
   
 spacer:
   height: [1, 5]

@@ -830,63 +830,63 @@ class PageMixer:
         if self.config['mixer']['as_img']:
             self.page.as_img()
 
-        if self.config['mixer']['annotate']:
+        if self.config['mixer']['annotate_box']:
             annot = self.page.annotate_box(save_img = self.config['mixer']['save_annotate_imgs'],
                                        show_img = self.config['mixer']['show_annotate_imgs'],
                                        save_json = self.config['mixer']['save_single_annotate_json'])
+        if self.config['mixer']['annotate_mask']:
+            annot = self.page.annotate_mask(save_img = self.config['mixer']['save_annotate_imgs'],
+                                       show_img = self.config['mixer']['show_annotate_imgs'])
         return annot 
     
 
 # ======================= Generate using config file  ============================
 
-# if __name__ == '__main__':
-#     config =  load_yaml('config.yaml')
-#     cfg_runner = config['runner']
-#     run_parallel = cfg_runner['run_parallel']
-#     n_files = cfg_runner['n_files']
-#     n_processors = cfg_runner['num_processors']    
-#     if run_parallel:        
-#         filenames = [uuid.uuid4().hex + '.pdf' for _ in range(n_files)]
-#         SynthPage(config)._initialize() # make output folders to avoid parallel conflict 
-#         def runner(filename):
-#             _ = PageMixer(config, filename).make()
-#         with Pool(n_processors) as p:
-#             _ = list(tqdm(p.imap_unordered(runner, filenames), total = n_files))
-#     else:
-#         for _ in tqdm(range(n_files)):
-#             filename = uuid.uuid4().hex + '.pdf'
-#             m = PageMixer(config, filename)
-#             m.make()
-
-# ======================= Generate using customized elements  ============================
-
 if __name__ == '__main__':
-    
-    config =  load_yaml('config_large_table.yaml')
+    config =  load_yaml('config.yaml')
     cfg_runner = config['runner']
     run_parallel = cfg_runner['run_parallel']
     n_files = cfg_runner['n_files']
-    n_processors = cfg_runner['num_processors']
-    
-    def runner(filename):
-        sp = SynthPage(config, filename = filename)
-        sp.add_spacer()
-        sp.add_table()
-        sp.add_spacer()
-        sp.as_pdf()
-        sp.as_img()
-        #sp.annotate_box(save_img = True)
-        sp.annotate_mask(save_img = True)
-        
-    if run_parallel:
+    n_processors = cfg_runner['num_processors']    
+    if run_parallel:        
         filenames = [uuid.uuid4().hex + '.pdf' for _ in range(n_files)]
         SynthPage(config)._initialize() # make output folders to avoid parallel conflict 
+        def runner(filename):
+            _ = PageMixer(config, filename).make()
         with Pool(n_processors) as p:
             _ = list(tqdm(p.imap_unordered(runner, filenames), total = n_files))
     else:
         for _ in tqdm(range(n_files)):
             filename = uuid.uuid4().hex + '.pdf'
-            runner(filename)
+            m = PageMixer(config, filename)
+            m.make()
+
+# ======================= Generate using customized elements  ============================
+
+# if __name__ == '__main__':    
+#     config =  load_yaml('config_large_table.yaml')
+#     cfg_runner = config['runner']
+#     run_parallel = cfg_runner['run_parallel']
+#     n_files = cfg_runner['n_files']
+#     n_processors = cfg_runner['num_processors']
+#     def runner(filename):
+#         sp = SynthPage(config, filename = filename)
+#         sp.add_spacer()
+#         sp.add_table()
+#         sp.add_spacer()
+#         sp.as_pdf()
+#         sp.as_img()
+#         #sp.annotate_box(save_img = True)
+#         sp.annotate_mask(save_img = True)        
+#     if run_parallel:
+#         filenames = [uuid.uuid4().hex + '.pdf' for _ in range(n_files)]
+#         SynthPage(config)._initialize() # make output folders to avoid parallel conflict 
+#         with Pool(n_processors) as p:
+#             _ = list(tqdm(p.imap_unordered(runner, filenames), total = n_files))
+#     else:
+#         for _ in tqdm(range(n_files)):
+#             filename = uuid.uuid4().hex + '.pdf'
+#             runner(filename)
 
 # ======================= test run ============================
 

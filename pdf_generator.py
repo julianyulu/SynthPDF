@@ -364,7 +364,7 @@ class SynthPage:
         return (int(x * factor), int(H - y * factor))
 
     
-    def annotate(self, show_img = False, save_img = False, save_json = False):
+    def annotate_box(self, show_img = False, save_img = False, save_json = False):
         
         annot = self.doc.coords
         # current only annote the first page, as the coords has not info about the page
@@ -410,6 +410,35 @@ class SynthPage:
                 json.dump(labels, fid)
         
         return labels # dicts
+
+    def annotate_mask(self, show_img = False, save_img = True):    
+        annot = self.doc.coords
+        # current only annote the first page, as the coords has not info about the page
+        img_files = self.as_img()
+        img = cv2.imread(img_files[0])
+        H, W = img.shape[:2]
+
+        labels = {}
+        idx = 0 
+        prev_ycoords = -1  # filter out the annot on the second page
+
+        mask = np.zeros([H, W])
+        for elem in annot:
+            x_lowerLeft, y_lowerLeft = elem['x'], elem['y']
+            w_elem, h_elem = elem['w'], elem['h']
+            x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
+            x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
+            if elem['page'] == 1 and elem['kind'] == 'table':
+                mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = 1
+        
+        if save_img:
+            save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '_mask.jpg'
+            cv2.imwrite(os.path.join(self._img_path, save_name), mask)
+            
+        if show_img:
+            plt.figure(figsize = (12, 20))
+            plt.imshow(mask*255, 'gray')
+            plt.show()
     
 class SynthParagraph:
     CN_CHAR_FILE = 'char_data/JianTi3500.txt'
@@ -802,7 +831,7 @@ class PageMixer:
             self.page.as_img()
 
         if self.config['mixer']['annotate']:
-            annot = self.page.annotate(save_img = self.config['mixer']['save_annotate_imgs'],
+            annot = self.page.annotate_box(save_img = self.config['mixer']['save_annotate_imgs'],
                                        show_img = self.config['mixer']['show_annotate_imgs'],
                                        save_json = self.config['mixer']['save_single_annotate_json'])
         return annot 
@@ -846,7 +875,8 @@ if __name__ == '__main__':
         sp.add_spacer()
         sp.as_pdf()
         sp.as_img()
-        sp.annotate(save_img = True)
+        #sp.annotate_box(save_img = True)
+        sp.annotate_mask(save_img = True)
         
     if run_parallel:
         filenames = [uuid.uuid4().hex + '.pdf' for _ in range(n_files)]
@@ -882,7 +912,8 @@ if __name__ == '__main__':
 # #sp.add_title()
 # sp.as_pdf()
 # sp.as_img()
-# sp.annotate(save_img = True)
+# #sp.annotate_box(save_img = True)
+# sp.annotate_mask(save_img = True)
 
 # #Test Mixer 
 # m = PageMixer(config)

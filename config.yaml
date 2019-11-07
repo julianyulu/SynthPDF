@@ -13,9 +13,9 @@ io:
   json_path: 'jsons'
 
 runner:
-  n_files: 40000
+  n_files: 40
   run_parallel: true
-  num_processors: 45
+  num_processors: 4
 
 mixer:
   prob_title: 0.1
@@ -29,15 +29,15 @@ mixer:
   avoid_neighbor_tables: true
   as_img: true
   as_pdf: true
-  annotate_box: false
+  annotate_box: true
   annotate_mask: true
   save_annotate_imgs: true
   show_annotate_imgs: false
   save_single_annotate_json: true
 
 page:
-  prob_portrait: 0.7
-  prob_landscape: 0.3
+  prob_portrait: 1
+  prob_landscape: 0
   
   header:
     line:

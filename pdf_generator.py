@@ -381,6 +381,12 @@ class SynthPage:
             x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
             x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
 
+            # Ensure coords are within the page range (for large tables)
+            x_upperLeft = max(x_upperLeft, 0)
+            y_upperLeft = max(y_upperLeft, 0)
+            x_lowerRight = min(x_lowerRight, W)
+            y_lowerRight = min(y_lowerRight, H)
+        
             if elem['page'] == 1:
                 labels[idx] = {'kind': elem['kind'],
                                'p1': (int(x_upperLeft), int(y_upperLeft)),
@@ -428,6 +434,13 @@ class SynthPage:
             w_elem, h_elem = elem['w'], elem['h']
             x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
             x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
+
+            # Ensure coords are within the page range (for large tables)
+            x_upperLeft = max(x_upperLeft, 0)
+            y_upperLeft = max(y_upperLeft, 0)
+            x_lowerRight = min(x_lowerRight, W)
+            y_lowerRight = min(y_lowerRight, H)
+            
             if elem['page'] == 1 and elem['kind'] == 'table':
                 mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = 1
         

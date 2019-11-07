@@ -871,8 +871,8 @@ if __name__ == '__main__':
     else:
         for _ in tqdm(range(n_files)):
             filename = uuid.uuid4().hex + '.pdf'
-            m = PageMixer(config, filename)
-            m.make()
+            m = PageMixer(config, filename) 
+           m.make()
 
 # ======================= Generate using customized elements  ============================
 

@@ -34,7 +34,6 @@ for v in $(ls $img_dir);do
     $cmd ${img_dir}/${id}_page1.jpg ${out_img}/${id}.jpg
     $cmd ${img_dir}/${id}_mask.jpg ${out_mask}/${id}_mask.jpg
     $cmd ${img_dir}/${id}_ann.jpg ${out_annot}/${id}_ann.jpg
-    break
 done
 
 if [ $cmd == 'mv' ];then

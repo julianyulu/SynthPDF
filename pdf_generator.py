@@ -867,7 +867,7 @@ if __name__ == '__main__':
         def runner(filename):
             _ = PageMixer(config, filename).make()
         with Pool(n_processors) as p:
-            _ = list(tqdm(p.imap_unordered(runner, filenames), total = n_files))
+            _ = list(tdqm(p.imap_unordered(runner, filenames), total = n_files))
     else:
         for _ in tqdm(range(n_files)):
             filename = uuid.uuid4().hex + '.pdf'

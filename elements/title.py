@@ -1,7 +1,7 @@
 import numpy as np 
-from paragraph import SynthParagraph
 from reportlab.platypus import Paragraph
-from style_generator import ParagraphStyleGenerator
+from elements.paragraph import SynthParagraph
+from elements.style_generator import ParagraphStyleGenerator
 
 class SynthTitle(SynthParagraph):
     def __init__(self, config):

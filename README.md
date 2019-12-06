@@ -42,6 +42,10 @@ Generate Synthetic pdf files using custmizable content while recording elements 
 + numpuy==1.17.1
 + jsonschema==3.0.2
 
+## Fonts
+
+Below fonts are non-standard such that extracted bounding box is not accurate:
++ langting-gbk
 
 ## TODO
 

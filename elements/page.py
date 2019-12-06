@@ -5,13 +5,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from reportlab.platypus import Spacer
 from reportlab.lib.pagesizes import A4, landscape 
-from template import myTemplate
-from list import SynthList
-from header import PageHeader
-from table import SynthTable
-from title import SynthTitle, SynthSubTitle
-from paragraph import SynthParagraph
-from utils import random_integer_from_list, normalize_probabilty, pdf2img
+from elements.template import myTemplate
+from elements.list import SynthList
+from elements.header import PageHeader
+from elements.table import SynthTable
+from elements.title import SynthTitle, SynthSubTitle
+from elements.paragraph import SynthParagraph
+from elements.utils import random_integer_from_list, normalize_probabilty, pdf2img
 
 class SynthPage:
     def __init__(self, config, filename = 'test.pdf'):
@@ -114,7 +114,15 @@ class SynthPage:
 
     
     def annotate_box(self, show_img = False, save_img = False, save_json = False):
-        
+        ANNOTATE_ELEMENTS = ['table', 'text', 'stamp', 'signature']
+        ELEMENTS_COLOR = {'table': (0, 0, 255),
+                          'text': (255, 0, 0),
+                          'stamp': (0, 255, 0),
+                          'signature': (112, 22, 120)}
+        FONT_FACE = cv2.FONT_HERSHEY_COMPLEX_SMALL
+        FONT_SCALE = 1
+        FONT_THICKNESS = 1
+
         annot = self.doc.coords
         # current only annote the first page, as the coords has not info about the page
         img_files = self.as_img()
@@ -137,16 +145,31 @@ class SynthPage:
             y_lowerRight = min(y_lowerRight, H)
         
             if elem['page'] == 1:
-                labels[idx] = {'kind': elem['kind'],
+                kind = elem['kind']
+                labels[idx] = {'kind': kind,
                                'p1': (int(x_upperLeft), int(y_upperLeft)),
                                'p2': (int(x_lowerRight), int(y_lowerRight))}
                 idx += 1 
                 if show_img or save_img:
-                    if elem['kind'] in ['table', 'stamp', 'signature']:
+                    if kind in ANNOTATE_ELEMENTS:
+                        # bbox 
                         cv2.rectangle(img,
                                       (x_upperLeft, y_upperLeft),
                                       (x_lowerRight, y_lowerRight),
-                                      255, 2)
+                                      ELEMENTS_COLOR[kind], 2)
+                        retval, baseline = cv2.getTextSize(kind, FONT_FACE, FONT_SCALE, FONT_THICKNESS)
+                        # text backgound 
+                        width, height = retval
+                        cv2.rectangle(img,
+                                      (x_upperLeft, y_upperLeft - height),
+                                      (x_upperLeft + width, y_upperLeft),
+                                      (255, 255, 204), -1) # cany text backgroud
+                        # text
+                        text = cv2.putText(img, kind, (x_upperLeft, y_upperLeft),
+                                           FONT_FACE, FONT_SCALE,
+                                           ELEMENTS_COLOR[kind], FONT_THICKNESS)
+                        
+                        
             else:
                 break
                 
@@ -191,7 +214,7 @@ class SynthPage:
             y_lowerRight = min(y_lowerRight, H)
             
             if elem['page'] == 1 and elem['kind'] == 'table':
-                mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = 1
+                mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = 255
         
         if save_img:
             save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '_mask.jpg'

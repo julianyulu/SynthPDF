@@ -2,8 +2,8 @@ import os
 import numpy as np
 from PIL import Image 
 from reportlab.platypus import SimpleDocTemplate, Paragraph
-from table import Table
-from utils import random_integer_from_list
+from elements.table import Table
+from elements.utils import random_integer_from_list
 
 class myTemplate(SimpleDocTemplate):
     def __init__(self, filename, config, **kw):
@@ -26,21 +26,37 @@ class myTemplate(SimpleDocTemplate):
         #print(self.frame.__dict__)
         # parse flowable coords
         if isinstance(flowable, Paragraph):
-            kind = 'paragraph'
-            width, height = flowable.width, flowable.height # note the difference from table 
+            kind = flowable.style.name
+            height = flowable.height # note the difference from table
+            
+            # figure out width
+            try:
+                width = max([x[0] for x in flowable.frags])
+            except TypeError:
+                width = flowable._width_max
+
+            #n_lines = len(flowable.blPara.lines)
+            #x_lowerLeft = x_lowerLeft + flowable.style.leading if n_lines == 1 else x_lowerLeft
+            if flowable.style.alignment == 1:    # center align 
+                x_lowerLeft = x_lowerLeft - self.frame._leftPadding
+                x_lowerLeft = (x_upperRight + x_lowerLeft) / 2 - width / 2
+            elif flowable.style.alignment == 2:  # right align 
+                x_lowerLeft = x_upperRight - width - self.frame._leftPadding
+            else: # left align 0 
+                x_lowerLeft = x_lowerLeft 
         elif isinstance(flowable, Table):
             kind = 'table'
+            # below only works for horizontally center aligned talbe 
             width, height = flowable._width, flowable._height
-                        
-        # elif isinstance(flowable, Spacer):
-        #     kind = 'spacer'
-        #     width, height = flowable.width, flowable.height
+            x_lowerLeft = x_lowerLeft - self.frame._leftPadding
+            x_lowerLeft = (x_upperRight + x_lowerLeft) / 2 - width / 2
+                            
         else:
             return -1
         
         # fix shifts
-        x_lowerLeft = x_lowerLeft - self.frame._leftPadding
-        x_lowerLeft = (x_upperRight + x_lowerLeft) / 2 - width / 2
+
+        
         y_lowerLeft = y_lowerLeft + self.frame._prevASpace 
 
         # add flowable result to coords 

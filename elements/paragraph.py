@@ -1,7 +1,7 @@
 import numpy as np
 from reportlab.platypus import Paragraph
-from style_generator import ParagraphStyleGenerator
-from utils import random_integer_from_list
+from elements.style_generator import ParagraphStyleGenerator
+from elements.utils import random_integer_from_list
 
 class SynthParagraph:
     CN_CHAR_FILE = 'char_data/JianTi3500.txt'

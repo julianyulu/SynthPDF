@@ -1,12 +1,11 @@
 import os
 import numpy as np
-from utils import load_yaml, random_integer_from_list, prob2category
-
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import TableStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT
+from elements.utils import load_yaml, random_integer_from_list, prob2category
 
 FONT_PATH = 'fonts'
 
@@ -106,7 +105,7 @@ class ParagraphStyleGenerator:
                                textColor = self._gen_font_color(),
                                spaceBefore = self._gen_space_before(),
                                spaceAfter = self._gen_space_after(), 
-                               name = 'custom',
+                               name = 'text',
                                leading = self._gen_leading(),
                                firstLineIndent = self._gen_firstline_indent(),
                                alignment = self._gen_align())
@@ -115,7 +114,7 @@ class ParagraphStyleGenerator:
     @staticmethod 
     def _gen_font():
         font_file = np.random.choice(os.listdir(FONT_PATH))
-        font_name = font_file.split('.ttf')[0] 
+        font_name = font_file.split('.ttf')[0]
         pdfmetrics.registerFont(TTFont(font_name, font_file))
         return font_name 
 

@@ -1,8 +1,11 @@
 import numpy as np 
 from reportlab.platypus import Table, Paragraph
-from style_generator import TableStyleGenerator
 from reportlab.lib.styles import ParagraphStyle
-from utils import random_integer_from_list, prob2category
+from elements.style_generator import TableStyleGenerator
+from elements.utils import (load_yaml,
+                            random_integer_from_list,
+                            prob2category)
+                            
 
 class RotatedTable(Table):
     def wrap(self, availWidth, availHeight):

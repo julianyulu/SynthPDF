@@ -1,8 +1,9 @@
 import numpy as np
 from reportlab.platypus import Paragraph
-from paragraph import SynthParagraph
-from style_generator import ParagraphStyleGenerator
-from utils import random_integer_from_list
+from elements.paragraph import SynthParagraph
+from elements.style_generator import ParagraphStyleGenerator
+from elements.utils import random_integer_from_list
+
 class SynthList(SynthParagraph):
     def __init__(self, config):
         super().__init__(config)
@@ -24,4 +25,5 @@ class SynthList(SynthParagraph):
             items.append(item)
         text = '<br />\n'.join(items)
         title_style = ParagraphStyleGenerator(self.config).style()
+        #title_style.name = 'list'
         return Paragraph(text, title_style)    

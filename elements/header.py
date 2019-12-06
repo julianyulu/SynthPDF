@@ -1,7 +1,7 @@
 import numpy as np
 from reportlab.pdfgen import canvas
-from utils import random_integer_from_list
-from style_generator import ParagraphStyleGenerator
+from elements.utils import random_integer_from_list
+from elements.style_generator import ParagraphStyleGenerator
 
 class PageHeader:
     """

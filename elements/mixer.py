@@ -1,5 +1,5 @@
 import numpy as np 
-from page import SynthPage
+from elements.page import SynthPage
 
 class PageMixer:
     def __init__(self, config, filename = 'test.pdf'):
@@ -58,5 +58,5 @@ class PageMixer:
                                        save_json = self.config['mixer']['save_single_annotate_json'])
         if self.config['mixer']['annotate_mask']:
             annot = self.page.annotate_mask(save_img = self.config['mixer']['save_annotate_imgs'],
-                                       show_img = self.config['mixer']['show_annotate_imgs'])
+                                            show_img = self.config['mixer']['show_annotate_imgs'])
         return annot 

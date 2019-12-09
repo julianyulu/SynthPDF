@@ -216,10 +216,7 @@ class SynthPage:
                 y_upperLeft = max(y_upperLeft, 0)
                 x_lowerRight = min(x_lowerRight, W)
                 y_lowerRight = min(y_lowerRight, H)
-
-                print("*", elem['kind'], "*")
                 if elem['kind'] in ANNOTATE_LABELS:
-                    print(elem['kind'], ANNOTATE_LABELS[elem['kind']])
                     mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = ANNOTATE_LABELS[elem['kind']]
                 
         if save_img:

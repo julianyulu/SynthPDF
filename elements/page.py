@@ -2,6 +2,7 @@ import cv2
 import os
 import json
 import numpy as np
+from PIL import Image
 import matplotlib.pyplot as plt
 from reportlab.platypus import Spacer
 from reportlab.lib.pagesizes import A4, landscape 
@@ -189,9 +190,10 @@ class SynthPage:
         
         return labels # dicts
 
-    def annotate_mask(self, show_img = False, save_img = True):    
+    def annotate_mask(self, show_img = False, save_img = True):
+        ANNOTATE_LABELS = {'table': 1, 'text': 2, 'stamp':3, 'signature':4}
         annot = self.doc.coords
-        # current only annote the first page, as the coords has not info about the page
+        # current only annote the first page, as the coords has no info about the page
         img_files = self.as_img()
         img = cv2.imread(img_files[0])
         H, W = img.shape[:2]
@@ -201,25 +203,29 @@ class SynthPage:
         prev_ycoords = -1  # filter out the annot on the second page
 
         mask = np.zeros([H, W])
+        #mask = np.ones([H, W])  * 10 
         for elem in annot:
-            x_lowerLeft, y_lowerLeft = elem['x'], elem['y']
-            w_elem, h_elem = elem['w'], elem['h']
-            x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
-            x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
+            if elem['page'] == 1:
+                x_lowerLeft, y_lowerLeft = elem['x'], elem['y']
+                w_elem, h_elem = elem['w'], elem['h']
+                x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
+                x_lowerRight, y_lowerRight = self._trans_coords((x_lowerLeft + w_elem, y_lowerLeft), W, H)
 
-            # Ensure coords are within the page range (for large tables)
-            x_upperLeft = max(x_upperLeft, 0)
-            y_upperLeft = max(y_upperLeft, 0)
-            x_lowerRight = min(x_lowerRight, W)
-            y_lowerRight = min(y_lowerRight, H)
-            
-            if elem['page'] == 1 and elem['kind'] == 'table':
-                mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = 255
-        
+                # Ensure coords are within the page range (for large tables)
+                x_upperLeft = max(x_upperLeft, 0)
+                y_upperLeft = max(y_upperLeft, 0)
+                x_lowerRight = min(x_lowerRight, W)
+                y_lowerRight = min(y_lowerRight, H)
+
+                print("*", elem['kind'], "*")
+                if elem['kind'] in ANNOTATE_LABELS:
+                    print(elem['kind'], ANNOTATE_LABELS[elem['kind']])
+                    mask[int(y_upperLeft) : int(y_lowerRight), int(x_upperLeft):int(x_lowerRight)] = ANNOTATE_LABELS[elem['kind']]
+                
         if save_img:
-            save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '_mask.jpg'
+            # note: mask has to be 'png' format, 'jpg' will change the annotations 
+            save_name = os.path.basename(img_files[0]).split('_page1.jpg')[0] + '_mask.png' 
             cv2.imwrite(os.path.join(self._img_path, save_name), mask)
-            
         if show_img:
             plt.figure(figsize = (12, 20))
             plt.imshow(mask*255, 'gray')

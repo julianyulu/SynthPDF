@@ -44,6 +44,9 @@ class PageMixer:
         # add elements to page from select_elements 
         for op in select_elements:
             self.page.__getattribute__(op)()
+
+        # when there is not interested element, skip 
+        if len(self.page.doc.coords) == 0: return
         
         # finally output result file 
         if self.config['mixer']['as_pdf']:
@@ -59,4 +62,4 @@ class PageMixer:
         if self.config['mixer']['annotate_mask']:
             annot = self.page.annotate_mask(save_img = self.config['mixer']['save_annotate_imgs'],
                                             show_img = self.config['mixer']['show_annotate_imgs'])
-        return annot 
+            return annot 

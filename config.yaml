@@ -14,7 +14,7 @@ io:
   json_path: 'jsons'
 
 runner:
-  n_files: 10000
+  n_files: 240
   run_parallel: true
   num_processors: 45
 

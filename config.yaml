@@ -20,10 +20,10 @@ runner:
 
 mixer:
   prob_title: 0.05
-  prob_subtitle: 0.05
+  prob_subtitle: 0.025
   prob_paragraph: 0.8
-  prob_spacer: 0.05
-  prob_list: 0.05
+  prob_spacer: 0
+  prob_list: 0.025
   min_tables_per_page: 1
   max_tables_per_page: 3
   max_elements_per_page: 10
@@ -31,7 +31,7 @@ mixer:
   as_img: true
   as_pdf: true
   annotate_box: true
-  annotate_mask: true
+  annotate_mask: false
   save_annotate_imgs: true
   show_annotate_imgs: false
   save_single_annotate_json: true
@@ -39,6 +39,7 @@ mixer:
 page:
   prob_portrait: 1
   prob_landscape: 0
+  annot_elements: ['table', 'text', 'stamp', 'signature']
   
   header:
     line:
@@ -50,8 +51,7 @@ page:
     text:
       locations: ['left', 'right', 'center']
       word_length: [2, 8]
-      font_size: [5, 12]
-     
+      font_size: [5, 12] 
       
   footer:
     page_number: true

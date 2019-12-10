@@ -115,7 +115,7 @@ class SynthPage:
 
     
     def annotate_box(self, show_img = False, save_img = False, save_json = False):
-        ANNOTATE_ELEMENTS = ['table', 'text', 'stamp', 'signature']
+        ANNOTATE_ELEMENTS = self.config['page']['annot_elements']
         ELEMENTS_COLOR = {'table': (0, 0, 255),
                           'text': (255, 0, 0),
                           'stamp': (0, 255, 0),
@@ -134,6 +134,8 @@ class SynthPage:
         idx = 0 
         prev_ycoords = -1  # filter out the annot on the second page
         for elem in annot:
+            kind = elem['kind']
+            if not kind in ANNOTATE_ELEMENTS: continue 
             x_lowerLeft, y_lowerLeft = elem['x'], elem['y']
             w_elem, h_elem = elem['w'], elem['h']
             x_upperLeft, y_upperLeft = self._trans_coords((x_lowerLeft, y_lowerLeft + h_elem), W, H)
@@ -146,7 +148,6 @@ class SynthPage:
             y_lowerRight = min(y_lowerRight, H)
         
             if elem['page'] == 1:
-                kind = elem['kind']
                 labels[idx] = {'kind': kind,
                                'p1': (int(x_upperLeft), int(y_upperLeft)),
                                'p2': (int(x_lowerRight), int(y_lowerRight))}

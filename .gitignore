@@ -1,5 +1,3 @@
 *~
-*.ttf
 __pycache__/
-fonts/
-output*/
+

@@ -1,20 +1,24 @@
 # SynthPDF  
 ----
-Generate Synthetic pdf files using custmizable content while recording elements coordinates for OCR objection detection, elements including table, stamp, paragraph, list, title, footnote, etc. All fully customizable with config file. Outputs pdf, img, and json for necessary information.
+Generate Synthetic pdf files using custmizable content while recording elements coordinates for OCR objection detection, elements including table, stamp, paragraph, list, title, footnote, etc. All fully customizable with config file. Outputs pdf, img, and json for necessary information. Parallel processing supported. 
 
 
 
-#![example1]
+#![example1](https://github.com/SuperYuLu/SynthPDF/blob/master/examples/imgs/b3dcd5665a734aa18daf8bbbc174a5e3_ann.jpg)
+#![example2](https://github.com/SuperYuLu/SynthPDF/blob/master/examples/imgs/f4606b8110a246d88afb83b6d365ae92_ann.jpg)
 
 ## Features
 
 + Highly costomizable yaml config file
 + Parallel running on multi-processors
-+ Page elements: title, paragraph, table, space [customizable]
++ Page elements: title, subtitle, paragraph, table, space, stamp, list, signature, footnote, etc.
 + Various outputs
-  - pdf
+  - pdf (generated  pdf file)
   - jpg (optional: with element bounding boxes)
-  - json
+  - json (recording elements coordinates)
++ Page:
+  - page style
+  - page rotation 
 + Table:
   - nrows
   - ncols
@@ -26,16 +30,22 @@ Generate Synthetic pdf files using custmizable content while recording elements 
   - with / without gridlines
   - many more ...
 + Paragraph
-  - sentences
+  - sentence
   - fonts / colors / words
   - alignment
   - linespace
 + Title:
   - Fonts / colors / words 
   - Number of lines
++ Subtitle
+  - Fonts / colors /words
+  - Number of lines
 + Spacer:
   - Spacer height / width
-
++ Signature
+  - Nubmer of signatures on top of table with random location 
++ Stamp
+  - Number of stamps on top of table with random location 
 ## Requirements
 
 + poppler-utils [linux]
@@ -65,13 +75,9 @@ or conda [recommended]
 ```bash
 conda install --file requirements.txt -c conda-forge
 ```
-3. Update config file (config.yaml) to custom the pdf layout
+3. Update config file (config.yaml) to custom the component of pdf content, director, processors, etc. 
 
-## TODO
-
-+ Footnotes / pager header
-+ horizontal lines
-+ table stamps
-+ rotate table
-+ table line info to output json
-
+4. Run
+```bash
+python main.py
+```

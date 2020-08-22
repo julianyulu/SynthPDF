@@ -1,11 +1,8 @@
 # SynthPDF  
 ----
-Generate Synthetic pdf files using custmizable content while recording elements coordinates for OCR objection detection, elements including table, stamp, paragraph, list, title, footnote, etc. All fully customizable with config file. Outputs pdf, img, and json for necessary information. Parallel processing supported. 
+Generate Synthetic pdf files using custmizable content while recording elements coordinates for OCR objection detection, elements including table, stamp, paragraph, list, title, footnote, etc. All fully customizable with config file. Outputs pdf, img, and json for necessary information. Parallel processing supported. (more examples can be found under ./outputs)
 
-
-
-#![example1](https://github.com/SuperYuLu/SynthPDF/blob/master/examples/imgs/b3dcd5665a734aa18daf8bbbc174a5e3_ann.jpg)
-#![example2](https://github.com/SuperYuLu/SynthPDF/blob/master/examples/imgs/f4606b8110a246d88afb83b6d365ae92_ann.jpg)
+#![example1](https://github.com/SuperYuLu/SynthPDF/blob/master/examples/example.jpg)
 
 ## Features
 

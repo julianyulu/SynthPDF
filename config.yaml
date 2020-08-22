@@ -14,14 +14,14 @@ io:
   json_path: 'jsons'
 
 runner:
-  n_files: 240
+  n_files: 100
   run_parallel: true
-  num_processors: 45
+  num_processors: 8
 
 mixer:
-  prob_title: 0.05
+  prob_title: 0.1
   prob_subtitle: 0.025
-  prob_paragraph: 0.8
+  prob_paragraph: 0.9
   prob_spacer: 0
   prob_list: 0.025
   min_tables_per_page: 1
